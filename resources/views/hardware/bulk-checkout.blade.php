@@ -79,7 +79,49 @@
                         :default_now="false"
                         input_div_class="col-md-4"
                     />
+<!-- ====== حقول النقل المخصصة (UNRWA Load Note) ====== -->
+                    <x-form.row
+                        label="Driver's Name"
+                        name="driver_name"
+                    >
+                        <x-slot:input>
+                            <x-input.text
+                                class="form-control"
+                                name="driver_name"
+                                id="driver_name"
+                                :value="old('driver_name')"
+                            />
+                        </x-slot:input>
+                    </x-form.row>
 
+                    <x-form.row
+                        label="Wagon / Track No."
+                        name="vehicle_number"
+                    >
+                        <x-slot:input>
+                            <x-input.text
+                                class="form-control"
+                                name="vehicle_number"
+                                id="vehicle_number"
+                                :value="old('vehicle_number')"
+                            />
+                        </x-slot:input>
+                    </x-form.row>
+
+                    <x-form.row
+                        label="SAP PO Number"
+                        name="contract_po_number"
+                    >
+                        <x-slot:input>
+                            <x-input.text
+                                class="form-control"
+                                name="contract_po_number"
+                                id="contract_po_number"
+                                :value="old('contract_po_number')"
+                            />
+                        </x-slot:input>
+                    </x-form.row>
+                    <!-- =================================================== -->
                     <x-form.row
                         :label="trans('general.notes')"
                         name="note"

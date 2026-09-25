@@ -79,6 +79,17 @@ class HistoryPresenter extends Presenter
                     'visible' => true,
                 ]);
         }
+        array_push($layout,
+            [
+                'field' => 'id',
+                'scope' => 'col',
+                'searchable' => false,
+                'sortable' => false,
+                'switchable' => true,
+                'title' => 'Load Note',
+                'visible' => true,
+                'formatter' => 'loadNoteFormatter',
+            ]);
 
         if (! in_array('action_date', $hide_fields)) {
             array_push($layout,

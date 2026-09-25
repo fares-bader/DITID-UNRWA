@@ -471,7 +471,7 @@
     </x-container>
 
 
-    @section('moar_scripts')
+@section('moar_scripts')
         @can('files', $asset)
             @include ('modals.upload-file', ['item_type' => 'asset', 'item_id' => $asset->id])
         @endcan
@@ -480,6 +480,16 @@
     @endcan
         @include ('partials.bootstrap-table')
         <x-modals.maintenance-complete />
+
+        <!-- السكربت المخصص لإظهار زر طباعة Load Note -->
+        <script>
+            function loadNoteFormatter(value, row) {
+                if (row.action_type === 'checkout' || (row.action_type && row.action_type.includes('checkout'))) {
+                    return '<a href="{{ url('/') }}/hardware/load-note/' + value + '" target="_blank" class="btn btn-sm btn-info" data-tooltip="true" title="Print Load Note"><i class="fas fa-print"></i> Print Load Note</a>';
+                }
+                return '-';
+            }
+        </script>
     @endsection
 
 @stop

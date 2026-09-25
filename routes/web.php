@@ -929,3 +929,5 @@ Route::middleware(['auth'])->get(
 )->name('home')
     ->breadcrumbs(fn (Trail $trail) => $trail->push('Home', route('home'))
     );
+Route::get('hardware/load-note/{logId}', [\App\Http\Controllers\Assets\AssetCheckoutController::class, 'printLoadNote'])->name('hardware.loadnote');
+Route::get('hardware/{assetId}/load-note/latest', [\App\Http\Controllers\Assets\AssetCheckoutController::class, 'printLatestLoadNote'])->name('hardware.loadnote.latest');

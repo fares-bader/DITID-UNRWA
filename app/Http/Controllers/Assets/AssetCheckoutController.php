@@ -168,10 +168,23 @@ class AssetCheckoutController extends Controller
             });
 
             if ($checkedOut) {
+                $log = \App\Models\Actionlog::where('item_id', $asset->id)
+                    ->where('item_type', \App\Models\Asset::class)
+                    ->where('action_type', 'checkout')
+                    ->orderBy('id', 'desc')
+                    ->first();
+
+                if ($log) {
+                    $log->driver_name = $request->input('driver_name');
+                    $log->vehicle_number = $request->input('vehicle_number');
+                    $log->contract_po_number = $request->input('contract_po_number');
+                    $log->save();
+                }
 
                 // When sign_in_place is requested and the target is a user, redirect to the
                 // acceptance/signature page so the user can sign in person. The signature is
                 // attributed to the target user, not the admin.
+
                 if ($request->boolean('sign_in_place') && $target instanceof User) {
                     $acceptance = CheckoutAcceptance::where('checkoutable_type', Asset::class)
                         ->where('checkoutable_id', $asset->id)
@@ -191,12 +204,14 @@ class AssetCheckoutController extends Controller
                         'sign_in_place_resource_type' => 'Assets',
                     ]);
 
-                    return redirect()->route('account.accept.item', $acceptance->id)
-                        ->with('success', trans('admin/hardware/message.checkout.success'));
+return redirect()->route('account.accept.item', $acceptance->id)
+                        ->with('success', trans('admin/hardware/message.checkout.success'))
+                        ->with('load_note_url', route('hardware.loadnote', $log->id));
                 }
 
                 return Helper::getRedirectOption($request, $asset->id, 'Assets')
-                    ->with('success', trans('admin/hardware/message.checkout.success'));
+                    ->with('success', trans('admin/hardware/message.checkout.success'))
+                    ->with('load_note_url', route('hardware.loadnote', $log->id));
             }
 
             // Redirect back to the checkout form with the specific
@@ -213,5 +228,39 @@ class AssetCheckoutController extends Controller
         } catch (CheckoutNotAllowed $e) {
             return redirect()->back()->with('error', $e->getMessage());
         }
+    }
+public function printLoadNote($logId)
+    {
+        $log = \App\Models\Actionlog::with([
+            'item.model', 
+            'item.company', 
+            'target.department', 
+            'location'
+        ])->findOrFail($logId);
+        
+        // جلب الموظف الذي قام بإنشاء المذكرة بشكل قطعي عبر رقم created_by
+        $issuer = \App\Models\User::with('department')->find($log->created_by);
+        
+        // تمرير المتغير الجديد issuer إلى القالب
+        return view('custom.load-note', compact('log', 'issuer'));
+    }
+    public function printLatestLoadNote($assetId)
+    {
+        // البحث عن أحدث عملية إخراج لهذا الجهاز تحديداً
+        $log = \App\Models\Actionlog::with([
+            'item.model', 
+            'item.company', 
+            'target.department', 
+            'location'
+        ])
+        ->where('item_id', $assetId)
+        ->where('item_type', \App\Models\Asset::class)
+        ->where('action_type', 'checkout')
+        ->orderBy('id', 'desc')
+        ->firstOrFail();
+        
+        $issuer = \App\Models\User::with('department')->find($log->created_by);
+        
+        return view('custom.load-note', compact('log', 'issuer'));
     }
 }

@@ -114,6 +114,24 @@
                         </x-slot:input>
                     </x-form.row>
 
+                    <x-form.row label="Contract / PO Number" name="contract_po_number">
+                        <x-slot:input>
+                            <input class="col-md-6 form-control" type="text" name="contract_po_number" id="contract_po_number" value="{{ old('contract_po_number') }}">
+                        </x-slot:input>
+                    </x-form.row>
+
+                    <x-form.row label="Driver's Name" name="driver_name">
+                        <x-slot:input>
+                            <input class="col-md-6 form-control" type="text" name="driver_name" id="driver_name" value="{{ old('driver_name') }}">
+                        </x-slot:input>
+                    </x-form.row>
+
+                    <x-form.row label="Wagon / Track No" name="vehicle_number">
+                        <x-slot:input>
+                            <input class="col-md-6 form-control" type="text" name="vehicle_number" id="vehicle_number" value="{{ old('vehicle_number') }}">
+                        </x-slot:input>
+                    </x-form.row>
+
                     <!-- Custom fields -->
                     @include('models/custom_fields_form', [
                         'model' => $asset->model,
