@@ -2,109 +2,51 @@
 <html lang="ar" dir="ltr">
 <head>
     <meta charset="UTF-8">
-    <title>Load Note - {{ $log->id ?? 'Preview' }}</title>
+    <title>{{ isset($log) ? 'Load Note - ' . $log->id : 'Bulk' }}</title>
     <style>
-        @page {
-            size: A4 portrait;
-            margin: 10mm 15mm;
-        }
-        @media print {
-            body { margin: 0; }
-            .no-print { display: none; }
-        }
+        @page { size: A4 portrait; margin: 10mm 15mm; }
+        @media print { body { margin: 0; } .no-print { display: none; } }
         body {
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            font-size: 12px;
-            color: #000;
-            background: #fff;
-            width: 100%;
-            max-width: 210mm;
-            margin: 0 auto;
-            box-sizing: border-box;
-            line-height: 1.4;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 12px;
+            color: #000; background: #fff; width: 100%; max-width: 210mm; margin: 0 auto; line-height: 1.4;
         }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            table-layout: fixed;
-        }
+        table { width: 100%; border-collapse: collapse; table-layout: fixed; }
         td { vertical-align: top; }
-        .value-line {
-            border-bottom: 1px solid #000;
-            font-weight: bold;
-            padding: 0 5px;
-            min-height: 18px;
-            word-wrap: break-word;
-        }
-        .inline-line {
-            border-bottom: 1px solid #000;
-            display: inline-block;
-            font-weight: bold;
-            padding: 0 5px;
-            min-width: 80px;
-            text-align: center;
-        }
-        .header-title {
-            text-align: center;
-            font-size: 22px;
-            font-weight: bold;
-            letter-spacing: 4px;
-        }
+        .value-line { border-bottom: 1px solid #000; font-weight: bold; padding: 0 5px; min-height: 18px; word-wrap: break-word; }
+        .inline-line { border-bottom: 1px solid #000; display: inline-block; font-weight: bold; padding: 0 5px; text-align: center; }
+        .header-title { text-align: center; font-size: 22px; font-weight: bold; letter-spacing: 4px; }
         .small-text { font-size: 10px; }
-        .goods-table {
-            margin-top: 15px;
-            border: 1px solid #000;
-        }
-        .goods-table th, .goods-table td {
-            border: 1px solid #000;
-            padding: 6px;
-            text-align: center;
-        }
-        .goods-table th {
-            font-weight: normal;
-            background-color: #f9f9f9 !important;
-            -webkit-print-color-adjust: exact;
-        }
-        .goods-body-row td {
-            height: 380px;
-            vertical-align: top;
-        }
-        .arabic-text {
-            direction: rtl;
-            text-align: center;
-            font-size: 11px;
-            margin: 15px 0;
-        }
-        .footer-boxes td { padding: 5px; }
+        .goods-table { margin-top: 15px; border: 1px solid #000; }
+        .goods-table th, .goods-table td { border: 1px solid #000; padding: 6px; text-align: center; }
+        .goods-table th { font-weight: normal; background-color: #f9f9f9 !important; -webkit-print-color-adjust: exact; }
+        .arabic-text { direction: rtl; text-align: center; font-size: 11px; margin: 15px 0; }
     </style>
 </head>
 <body onload="window.print()">
 
     @php
-        // جلب البيانات المخصصة (الأوزان ورقم ساب) من قاعدة البيانات قبل رسم الصفحة
-        $grossWeight = '';
-        $netWeight = '';
-        $sapPo = '';
-        
-        $asset = $log->item;
-        if ($asset && $asset->model && $asset->model->fieldset) {
-            foreach($asset->model->fieldset->fields as $field) {
-                $fieldName = strtolower(trim($field->name));
+        $totalGrossWeight = 0;
+        $totalNetWeight = 0;
+        $finalPoNumber = $log->contract_po_number;
+
+        $isTransfer = false;
+        $previousUser = null;
+
+        if (isset($log) && $log->item_id) {
+            $checkinLog = \App\Models\Actionlog::with('target')
+                ->where('item_id', $log->item_id)
+                ->where('item_type', \App\Models\Asset::class)
+                ->where('action_type', 'checkin from')
+                ->where('created_at', '>=', \Carbon\Carbon::parse($log->created_at)->subMinutes(1))
+                ->where('created_at', '<=', \Carbon\Carbon::parse($log->created_at)->addSeconds(5))
+                ->latest('id')
+                ->first();
                 
-                if (str_contains($fieldName, 'gross weight')) {
-                    $grossWeight = $asset->{$field->db_column};
-                }
-                if (str_contains($fieldName, 'net weight')) {
-                    $netWeight = $asset->{$field->db_column};
-                }
-                if (str_contains($fieldName, 'sap') || str_contains($fieldName, 'po')) {
-                    $sapPo = $asset->{$field->db_column};
-                }
+            if ($checkinLog && $checkinLog->target_type === \App\Models\User::class) {
+                $isTransfer = true;
+                $previousUser = $checkinLog->target; 
             }
         }
-
-        // تحديد رقم الـ PO النهائي (الأولوية للحقل المخصص، ثم لبيانات شاشة التسليم، ثم للرقم الافتراضي للجهاز)
-        $finalPoNumber = $sapPo ?: ($log->contract_po_number ?: $asset->order_number);
     @endphp
 
     <!-- Header -->
@@ -115,78 +57,83 @@
                 <div class="small-text">05.6.240.1</div>
             </td>
             <td style="width: 50%;" class="header-title">
-                LOAD NOTE
+                @if($isTransfer)
+                    TRANSFER NOTE
+                @else
+                    LOAD NOTE
+                @endif
             </td>
             <td style="width: 25%; text-align: right; vertical-align: middle;">
-                Date <span class="inline-line">{{ date('D d/m/Y') }}</span><br><br>
-                No. <span class="inline-line">ISD/{{ date('y') }}/{{ $log->id ?? 'XXXX' }}</span>
+                Date <span class="inline-line" style="min-width: 80px;">{{ date('D d/m/Y') }}</span><br><br>
+                No. <span class="inline-line" style="min-width: 80px;">ISD/{{ date('y') }}/{{ $log->id ?? 'XX' }}</span>
             </td>
         </tr>
     </table>
 
-    <!-- Addresses Structure -->
-    <table>
+    <!-- Addresses -->
+    <table style="margin-bottom: 10px; width: 100%;">
         <tr>
-            <td style="width: 60%;">
-                <table style="width: 90%;">
+            <td style="width: 55%;">
+                <table style="width: 95%;">
                     <tr>
                         <td style="width: 35px; padding-top: 2px;">TO</td>
                         <td class="value-line">{{ $log->target?->department?->name ?? '____________________' }}</td>
                     </tr>
-                    <tr>
-                        <td></td>
-                        <td class="small-text" style="text-align: center;">(Carrier's Name)</td>
-                    </tr>
-                    
-                    <tr>
-                        <td style="padding-top: 8px;">FROM</td>
-                        <td class="value-line" style="margin-top: 8px;">{{ $log->item?->company?->name ?? '____________________' }}</td>
-                    </tr>
-                    <tr>
-                        <td></td>
-                        <td class="small-text" style="text-align: center;">(UNRWA Office)</td>
-                    </tr>
+                    <tr><td></td><td class="small-text" style="text-align: center;">(Carrier's Name)</td></tr>
                 </table>
             </td>
-            <td style="width: 40%;">
-                <div style="height: 40px;"></div>
-                <table>
+            <td style="width: 45%;">
+                <table style="width: 100%;">
+                    <tr>
+                        <td style="width: 45px; padding-top: 2px;">FROM</td>
+                        <td class="value-line">
+                            {{ $issuer?->department?->name ?? '____________________' }}
+                            @if($isTransfer && $previousUser)
+                                <br><span style="font-size: 11px; font-weight: normal; color: #444;">(Transferred from: {{ $previousUser->first_name }} {{ $previousUser->last_name }})</span>
+                            @endif
+                        </td>
+                    </tr>
+                    <tr><td></td><td class="small-text" style="text-align: center;">(UNRWA Office)</td></tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+
+    <table style="margin-bottom: 10px; width: 100%;">
+        <tr>
+            <td style="width: 55%;">
+                <table style="width: 95%;">
+                    <tr>
+                        <td style="width: 155px; padding-top: 2px;">TO BE COLLECTED FROM</td>
+                        <td class="value-line">{{ $log->item?->location?->name ?? '____________________' }}</td>
+                    </tr>
+                    <tr><td></td><td class="small-text" style="text-align: center;">(Supplier's Name)</td></tr>
+                </table>
+            </td>
+            <td style="width: 45%;">
+                <table style="width: 100%;">
                     <tr>
                         <td style="width: 25px; padding-top: 2px;">AT</td>
-                        <td class="value-line">{{ $log->location?->name ?? $log->item?->location?->name ?? '____________________' }}</td>
+                        <td class="value-line">{{ $log->item?->location?->city ?? $log->item?->location?->address ?? $log->item?->location?->name ?? '____________________' }}</td>
                     </tr>
-                    <tr>
-                        <td></td>
-                        <td class="small-text" style="text-align: center;">(Place from which to collect goods)</td>
-                    </tr>
+                    <tr><td></td><td class="small-text" style="text-align: center;">(Place from which to collect goods)</td></tr>
                 </table>
             </td>
         </tr>
     </table>
 
-    <table style="margin-top: 5px;">
+    <table style="margin-bottom: 15px; width: 100%;">
         <tr>
-            <td style="width: 155px; padding-top: 2px;">TO BE COLLECTED FROM</td>
-            <td class="value-line" style="width: 40%;">{{ $issuer?->department?->name ?? '____________________' }}</td>
-            <td></td>
-        </tr>
-        <tr>
-            <td></td>
-            <td class="small-text" style="text-align: center;">(Supplier's Name)</td>
-            <td></td>
-        </tr>
-    </table>
-
-    <table style="margin-top: 5px;">
-        <tr>
-            <td style="width: 135px; padding-top: 2px;">TO BE DELIVERED TO</td>
-            <td class="value-line" style="width: 50%;">{{ $log->target?->name ?? '_____________________' }}</td>
-            <td></td>
-        </tr>
-        <tr>
-            <td></td>
-            <td class="small-text" style="text-align: center;">Consignee</td>
-            <td></td>
+            <td style="width: 100%;">
+                <table style="width: 100%;">
+                    <tr>
+                        <td style="width: 140px; padding-top: 2px;">TO BE DELIVERED TO</td>
+                        <td class="value-line" style="width: 60%;">{{ $log->target?->name ?? '_____________________' }}</td>
+                        <td></td>
+                    </tr>
+                    <tr><td></td><td class="small-text" style="text-align: center;">Consignee</td><td></td></tr>
+                </table>
+            </td>
         </tr>
     </table>
 
@@ -197,13 +144,10 @@
                 <table style="border: 1px solid #000; height: 45px;">
                     <tr>
                         <td style="width: 50%; padding: 4px; border-right: 1px solid #000;">
-                            <div class="small-text">Contract Purchase Order No.<br>Or Donation No. Ref.</div>
-                            <!-- عرض الـ SAP/PO النهائي هنا -->
-                            <div style="font-weight: bold; text-align: center; margin-top: 5px;">{{ $finalPoNumber ?? '' }}</div>
+                            <div class="small-text">Contract Purchase Order No.</div>
+                            <div style="font-weight: bold; text-align: center; margin-top: 5px;">{{ $finalPoNumber ?? '------' }}</div>
                         </td>
-                        <td style="width: 50%; padding: 4px;">
-                            <div class="small-text">Despatch Order No.</div>
-                        </td>
+                        <td style="width: 50%; padding: 4px;"><div class="small-text">Despatch Order No.</div></td>
                     </tr>
                 </table>
             </td>
@@ -211,9 +155,7 @@
                 <table style="width: 100%;">
                     <tr>
                         <td style="width: 60px;">Issued By:</td>
-                        <td class="value-line" style="text-align: center;">
-                            {{ $issuer?->first_name ?? '' }} {{ $issuer?->last_name ?? '' }}
-                        </td>
+                        <td class="value-line" style="text-align: center;">{{ $issuer?->first_name ?? '' }} {{ $issuer?->last_name ?? '' }}</td>
                     </tr>
                 </table>
             </td>
@@ -222,16 +164,14 @@
 
     <table style="margin-top: 10px;">
         <tr>
-            <td style="width: 50%;">
-                <div style="font-size: 11px;">Please receive for despatch the goods described below :-</div>
-            </td>
+            <td style="width: 50%;"><div style="font-size: 11px;">Please receive for despatch the goods described below :-</div></td>
             <td style="width: 50%; text-align: right; vertical-align: bottom;">
                 Despatched by (Signature) <span class="inline-line" style="width: 120px;"></span> ممثل الوكالة
             </td>
         </tr>
     </table>
 
-    <!-- Goods Table -->
+<!-- Goods Table -->
     <table class="goods-table">
         <thead>
             <tr>
@@ -244,29 +184,89 @@
             </tr>
         </thead>
         <tbody>
-            <tr class="goods-body-row">
-                <td>1</td>
-                <td style="text-align: left; line-height: 1.6; padding: 10px;">
-                    <span style="font-weight: bold; font-size: 14px;">{{ $asset->model->name ?? 'Laptop DELL Latitude' }}</span><br>
-                    LC: {{ $asset->asset_tag ?? '' }}<br>
-                    ST: {{ $asset->serial ?? '' }}
-                </td>
-                <td style="font-weight: bold;">EA</td>
-                <td style="font-weight: bold;">1</td>
-                <!-- عرض الوزن الإجمالي -->
-                <td style="font-weight: bold; font-size: 14px;">{{ $grossWeight }}</td>
-                <!-- عرض الوزن الصافي -->
-                <td style="font-weight: bold; font-size: 14px;">{{ $netWeight }}</td>
+            @foreach($allLogs as $index => $singleLog)
+                @php
+                    $item = $singleLog->item;
+                    $grossWeight = 0; $netWeight = 0; $sapPo = '';
+                    
+                    // 1. استخراج الأوزان ورقم الطلبية فقط في حال كانت المادة "جهازاً" ولها حقول مخصصة
+                    if ($singleLog->item_type === \App\Models\Asset::class && $item && $item->model && $item->model->fieldset) {
+                        foreach($item->model->fieldset->fields as $field) {
+                            $fieldName = strtolower(trim($field->name));
+                            if (str_contains($fieldName, 'gross weight')) { $grossWeight = (float) $item->{$field->db_column}; }
+                            if (str_contains($fieldName, 'net weight')) { $netWeight = (float) $item->{$field->db_column}; }
+                            if (str_contains($fieldName, 'sap') || str_contains($fieldName, 'po')) { $sapPo = $item->{$field->db_column}; }
+                        }
+                    }
+                    $totalGrossWeight += $grossWeight;
+                    $totalNetWeight += $netWeight;
+                    
+                    // تحديث رقم الطلبية إذا كان فارغاً
+                    if(empty($finalPoNumber)) { $finalPoNumber = $sapPo ?: ($item->order_number ?? ''); }
+
+                    // 2. منطق ذكي لتحديد اسم المادة وتفاصيلها بناءً على نوعها
+                    $itemName = $item->name ?? 'Unknown Item';
+                    $itemDetails = '';
+                    $unit = 'EA';
+
+                    if ($singleLog->item_type === \App\Models\Asset::class) {
+                        // إذا كان جهازاً
+                        $itemName = $item->model->name ?? $item->name ?? 'Asset';
+                        $itemDetails = "LC: " . ($item->asset_tag ?? '-') . " &nbsp;&nbsp;|&nbsp;&nbsp; ST: " . ($item->serial ?? '-');
+                    } elseif ($singleLog->item_type === \App\Models\Consumable::class) {
+                        // إذا كان مستهلكاً
+                        $itemName = $item->name ?? 'Consumable';
+                        $itemDetails = "Item No: " . ($item->item_no ?? '-');
+                    } elseif ($singleLog->item_type === \App\Models\Accessory::class) {
+                        // إذا كان إكسسواراً
+                        $itemName = $item->name ?? 'Accessory';
+                        $itemDetails = "Model No: " . ($item->model_number ?? '-');
+                    } elseif ($singleLog->item_type === \App\Models\License::class) {
+                        // إذا كان ترخيصاً
+                        $itemName = $item->name ?? 'License';
+                        $itemDetails = "Serial/Key: " . ($item->serial ?? '-');
+                        $unit = 'Lic';
+                    }
+                @endphp
+                <tr>
+                    <td>{{ $index + 1 }}</td>
+                    <td style="text-align: left; padding: 6px;">
+                        <span style="font-weight: bold;">{{ $itemName }}</span>
+                        @if($itemDetails != '')
+                            <br><span style="font-size: 11px;">{!! $itemDetails !!}</span>
+                        @endif
+                    </td>
+                    <td style="font-weight: bold;">{{ $unit }}</td>
+                    <td style="font-weight: bold;">1</td>
+                    <td>{{ $grossWeight ?: '-' }}</td>
+                    <td>{{ $netWeight ?: '-' }}</td>
+                </tr>
+            @endforeach
+
+            <!-- فراغ لدفع الفوتر للأسفل -->
+            <tr>
+                <td style="height: 120px; border-bottom: none; border-top: none;"></td>
+                <td style="border-bottom: none; border-top: none;"></td>
+                <td style="border-bottom: none; border-top: none;"></td>
+                <td style="border-bottom: none; border-top: none;"></td>
+                <td style="border-bottom: none; border-top: none;"></td>
+                <td style="border-bottom: none; border-top: none;"></td>
+            </tr>
+
+            <!-- سطر المجاميع -->
+            <tr style="background-color: #f9f9f9; -webkit-print-color-adjust: exact;">
+                <td colspan="3" style="text-align: right; font-weight: bold; padding: 8px;">TOTAL / المجموع الإجمالي &nbsp;</td>
+                <td style="font-weight: bold; font-size: 14px;">{{ count($allLogs) }}</td>
+                <td style="font-weight: bold; font-size: 14px;">{{ $totalGrossWeight ?: '-' }}</td>
+                <td style="font-weight: bold; font-size: 14px;">{{ $totalNetWeight ?: '-' }}</td>
             </tr>
         </tbody>
     </table>
 
-    <!-- Arabic Disclaimer -->
     <div class="arabic-text">
         ان الشاحنة ادناه محملة الى لاجئي فلسطين في لبنان - سوريا - المملكة الاردنية الهاشمية - لذلك نرجو السلطات المختصة تسهيل معاملاتها لتصل باقرب وقت ممكن
     </div>
 
-    <!-- Drivers & Signatures Box -->
     <table class="footer-boxes" style="border-top: 1px solid #000; margin-top: 10px; padding-top: 10px;">
         <tr>
             <td style="width: 25%;">
@@ -291,14 +291,13 @@
         </tr>
     </table>
 
-    <!-- Final Receipt Line -->
-    <table style="border-top: 1px solid #000; margin-top: 25px; padding-top: 10px;">
+    <table style="border-top: 1px solid #000; margin-top: 20px; padding-top: 10px;">
         <tr>
             <td style="width: 75%; font-size: 11px;">
                 <span style="letter-spacing: 2px; font-weight: bold;">RECEIPT</span> &nbsp;&nbsp;&nbsp; 
                 I have received the goods described above in good condition subject to following remarks ( if any )
             </td>
-            <td style="width: 25%; text-align: right; vertical-align: bottom; padding-top: 40px;">
+            <td style="width: 25%; text-align: right; vertical-align: bottom; padding-top: 30px;">
                 <div class="small-text">Received by (Signature)</div>
                 <span class="inline-line" style="width: 150px; margin-top: 10px;"></span>
             </td>

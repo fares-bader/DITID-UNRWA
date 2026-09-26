@@ -15,13 +15,6 @@ class ActionlogSeeder extends Seeder
 
     public function run()
     {
-        // Only wipe the specific action types this seeder is about to
-        // re-populate. A blanket truncate trashes the observer-written
-        // `create` / `update` / `qty_adjust` logs from earlier seeders
-        // (Accessory, Consumable, Component, Asset, ...) and leaves the
-        // demo DB inconsistent with the invariants those logs are meant
-        // to uphold — e.g. the qty-reconciliation migration relies on
-        // `create` + `qty_adjust` summing to parent.qty.
         Actionlog::where('action_type', 'checkout')->delete();
 
         if (! Asset::count()) {
@@ -36,28 +29,31 @@ class ActionlogSeeder extends Seeder
 
         $this->reportMemory('ActionlogSeeder start');
 
-        memory_reset_peak_usage();
-        Actionlog::factory()
-            ->count(300)
-            ->assetCheckoutToUser()
-            ->create(['created_by' => $admin->id]);
-        gc_collect_cycles();
-        $this->reportMemory('ActionlogSeeder after 300 assetCheckoutToUser');
-
-        memory_reset_peak_usage();
-        Actionlog::factory()
-            ->count(100)
-            ->assetCheckoutToLocation()
-            ->create(['created_by' => $admin->id]);
-        gc_collect_cycles();
-        $this->reportMemory('ActionlogSeeder after 100 assetCheckoutToLocation');
-
+        // تخفيض العدد إلى 20 عملية تسليم لموظفين ليتناسب مع البيانات التجريبية
         memory_reset_peak_usage();
         Actionlog::factory()
             ->count(20)
+            ->assetCheckoutToUser()
+            ->create(['created_by' => $admin->id]);
+        gc_collect_cycles();
+        $this->reportMemory('ActionlogSeeder after 20 assetCheckoutToUser');
+
+        // تخفيض العدد إلى 10 عمليات تسليم لمواقع
+        memory_reset_peak_usage();
+        Actionlog::factory()
+            ->count(10)
+            ->assetCheckoutToLocation()
+            ->create(['created_by' => $admin->id]);
+        gc_collect_cycles();
+        $this->reportMemory('ActionlogSeeder after 10 assetCheckoutToLocation');
+
+        // تخفيض العدد إلى 5 عمليات تسليم تراخيص
+        memory_reset_peak_usage();
+        Actionlog::factory()
+            ->count(5)
             ->licenseCheckoutToUser()
             ->create(['created_by' => $admin->id]);
         gc_collect_cycles();
-        $this->reportMemory('ActionlogSeeder after 20 licenseCheckoutToUser');
+        $this->reportMemory('ActionlogSeeder after 5 licenseCheckoutToUser');
     }
 }

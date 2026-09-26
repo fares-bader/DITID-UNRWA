@@ -79,7 +79,7 @@
                         :default_now="false"
                         input_div_class="col-md-4"
                     />
-<!-- ====== حقول النقل المخصصة (UNRWA Load Note) ====== -->
+<!-- ====== (UNRWA Load Note) ====== -->
                     <x-form.row
                         label="Driver's Name"
                         name="driver_name"

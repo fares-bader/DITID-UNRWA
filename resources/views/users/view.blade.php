@@ -39,6 +39,16 @@
                     <x-tabs.user-tab count="{{ $user->managesUsers()->count() }}" name="managed-users" icon_type="manager" :label="trans('admin/users/table.managed_users')"/>
                     <x-tabs.history-tab count="{{ $user->history->count() }}" :model="$user"/>
                     <x-tabs.upload-tab :item="$user"/>
+                    <li class="nav-item">
+                        <a href="#loadnotes" data-toggle="tab" class="nav-link">
+                            <i class="fas fa-file-invoice fa-fw"></i> Load Notes
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#checkinreceipts" data-toggle="tab" class="nav-link">
+                            <i class="fas fa-file-signature fa-fw"></i> Return Receipts
+                        </a>
+                    </li>
                 </x-slot:tabnav>
 
 
@@ -596,11 +606,152 @@
                     </x-tabs.pane>
 
 
-                    <!-- start history tab pane -->
+<!-- start history tab pane -->
                     <x-tabs.pane name="history">
                         <x-table.history :model="$user" :route="route('api.users.history', $user)" :hide_fields="['order_number']"/>
                     </x-tabs.pane>
                     <!-- end history tab pane -->
+
+                    <!-- بداية قسم مذكرات التسليم (Load Notes) -->
+                    <x-tabs.pane name="loadnotes">
+                        <div class="table-responsive" style="margin-top: 20px;">
+                            <table class="table table-striped snipe-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>No. of Items</th>
+                                        <th>Items</th>
+                                        <th>Driver</th>
+                                        <th>PO Number</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @php
+                                        // قمنا بإزالة with('item.model') لتجنب الخطأ الخاص بالـ Consumables
+                                        $loadNotes = \App\Models\Actionlog::with('item')
+                                            ->where('target_id', $user->id)
+                                            ->where('target_type', \App\Models\User::class)
+                                            ->where('action_type', 'checkout')
+                                            ->orderBy('created_at', 'desc')
+                                            ->get()
+                                            ->groupBy(function($date) {
+                                                return \Carbon\Carbon::parse($date->created_at)->format('Y-m-d H:i:s');
+                                            });
+                                    @endphp
+                                    
+                                    @forelse($loadNotes as $timestamp => $logs)
+                                        <tr>
+                                            <td style="vertical-align: middle; font-weight: bold;">{{ $timestamp }}</td>
+                                            <td style="vertical-align: middle;"><span class="badge bg-maroon" style="font-size: 13px;">{{ $logs->count() }}</span></td>
+                                            <td>
+                                                <ul style="padding-left: 15px; margin-bottom: 0; line-height: 1.8;">
+                                                @foreach($logs as $log)
+                                                    @if($log->item)
+                                                        <li>
+                                                            @if(isset($log->item->model))
+                                                                <strong>{{ $log->item->model->name }}</strong> 
+                                                            @else
+                                                                <strong>{{ $log->item->name ?? 'Item' }}</strong> 
+                                                            @endif
+                                                            
+                                                            @if($log->item->asset_tag)
+                                                                <span class="text-muted">(LC: {{ $log->item->asset_tag }})</span>
+                                                            @endif
+                                                        </li>
+                                                    @endif
+                                                @endforeach
+                                                </ul>
+                                            </td>
+                                            <td style="vertical-align: middle;">
+                                                <strong>{{ $logs->first()->driver_name ?? '-' }}</strong><br>
+                                                <span class="text-muted">{{ $logs->first()->vehicle_number ?? '' }}</span>
+                                            </td>
+                                            <td style="vertical-align: middle;">{{ $logs->first()->contract_po_number ?? '-' }}</td>
+                                            <td style="vertical-align: middle;">
+                                                <a href="{{ config('app.url') }}/hardware/load-note/{{ $logs->first()->id }}" target="_blank" class="btn btn-sm btn-info" data-tooltip="true" title="Print Combined Note">
+                                                    <i class="fas fa-print"></i> Print
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="6" class="text-center text-muted" style="padding: 20px;">No Load Notes found</td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </x-tabs.pane>
+<!-- بداية قسم إشعارات الإرجاع (Return Receipts) -->
+                    <x-tabs.pane name="checkinreceipts">
+                        <div class="table-responsive" style="margin-top: 20px;">
+                            <table class="table table-striped snipe-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>No. of Items</th>
+                                        <th>Returned Items</th>
+                                        <th>Received By</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @php
+                                        // قمنا بإزالة 'item.model' لتجنب الخطأ
+                                        $returnLogs = \App\Models\Actionlog::with(['item', 'user'])
+                                            ->where('target_id', $user->id)
+                                            ->where('target_type', \App\Models\User::class)
+                                            ->where('action_type', 'checkin from')
+                                            ->orderBy('created_at', 'desc')
+                                            ->get()
+                                            ->groupBy(function($date) {
+                                                return \Carbon\Carbon::parse($date->created_at)->format('Y-m-d H:i:s');
+                                            });
+                                    @endphp
+                                    
+                                    @forelse($returnLogs as $timestamp => $logs)
+                                        <tr>
+                                            <td style="vertical-align: middle; font-weight: bold;">{{ $timestamp }}</td>
+                                            <td style="vertical-align: middle;"><span class="badge bg-purple" style="font-size: 13px;">{{ $logs->count() }}</span></td>
+                                            <td>
+                                                <ul style="padding-left: 15px; margin-bottom: 0; line-height: 1.8;">
+                                                @foreach($logs as $log)
+                                                    @if($log->item)
+                                                        <li>
+                                                            @if(isset($log->item->model))
+                                                                <strong>{{ $log->item->model->name }}</strong> 
+                                                            @else
+                                                                <strong>{{ $log->item->name ?? 'Item' }}</strong> 
+                                                            @endif
+                                                            
+                                                            @if($log->item->asset_tag)
+                                                                <span class="text-muted">(LC: {{ $log->item->asset_tag }})</span>
+                                                            @endif
+                                                        </li>
+                                                    @endif
+                                                @endforeach
+                                                </ul>
+                                            </td>
+                                            <td style="vertical-align: middle;">
+                                                <strong>{{ $logs->first()->user->first_name ?? '' }} {{ $logs->first()->user->last_name ?? '' }}</strong>
+                                            </td>
+                                            <td style="vertical-align: middle;">
+                                                <a href="{{ config('app.url') }}/hardware/checkin-receipt/{{ $logs->first()->id }}" target="_blank" class="btn btn-sm btn-primary" data-tooltip="true" title="Print Return Receipt">
+                                                    <i class="fas fa-print"></i> Print
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="5" class="text-center text-muted" style="padding: 20px;">No Return Receipts found</td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </x-tabs.pane>
+                    <!-- نهاية قسم إشعارات الإرجاع -->
                 </x-slot:tabpanes>
             </x-tabs>
         </x-page-column>

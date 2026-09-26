@@ -811,7 +811,7 @@ class BulkAssetsController extends Controller
                 }
             });
 
-            if (! $errors) {
+if (! $errors) {
                 CheckoutablesCheckedOutInBulk::dispatch(
                     $assets,
                     $target,
@@ -820,6 +820,29 @@ class BulkAssetsController extends Controller
                     $expected_checkin,
                     e($request->get('note')),
                 );
+
+                // ====== تحديث سجلات الـ Actionlog بحقول النقل المخصصة لجميع الأجهزة ======
+                $logIdsToPrint = []; // لجمع أرقام السجلات لطباعتها إذا لزم الأمر
+
+                foreach ($assets as $asset) {
+                    $log = \App\Models\Actionlog::where('item_id', $asset->id)
+                        ->where('item_type', \App\Models\Asset::class)
+                        ->where('action_type', 'checkout')
+                        ->orderBy('id', 'desc')
+                        ->first();
+
+                    if ($log) {
+                        $log->driver_name = $request->input('driver_name');
+                        $log->vehicle_number = $request->input('vehicle_number');
+                        $log->contract_po_number = $request->input('contract_po_number');
+                        $log->save();
+
+                        // حفظ رقم أول سجل لكي نستخدمه كرابط للطباعة (إذا أردنا طباعة رابط واحد يجمع الكل)
+                        if (empty($logIdsToPrint)) {
+                            $logIdsToPrint[] = $log->id;
+                        }
+                    }
+                }
 
                 // Honor the redirect_option select from the form. Choosing
                 // 'bulk_checkout' bounces the operator right back to the
@@ -831,7 +854,6 @@ class BulkAssetsController extends Controller
                     ? route('hardware.bulkcheckout.show')
                     : route('hardware.index');
 
-                return redirect()->to($redirect)->with('success', trans_choice('admin/hardware/message.multi-checkout.success', $asset_ids));
             }
 
             // Redirect to the asset management page with error

@@ -264,3 +264,6 @@ Route::get('ht/{any?}',
     [AssetsController::class, 'getAssetByTag'])
     ->where('any', '.*')
     ->name('ht/assetTag');
+
+    Route::get('hardware/load-note/{logId}', [AssetCheckoutController::class, 'printLoadNote'])->name('hardware.loadnote');
+Route::get('hardware/checkin-receipt/{logId}', [AssetCheckoutController::class, 'printCheckinReceipt'])->name('hardware.checkin_receipt');

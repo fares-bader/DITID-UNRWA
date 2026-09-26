@@ -72,7 +72,7 @@ class UserItemTransferController extends Controller
             'target' => $target->display_name,
         ]);
 
-        $redirect = redirect()->route('users.show', $target)->with('success', $flash);
+$redirect = redirect()->route('users.show', $target)->with('success', $flash);
 
         $skipped = array_merge(
             $result['assets']['skipped'],
@@ -85,6 +85,22 @@ class UserItemTransferController extends Controller
                 'count' => count($skipped),
             ]));
         }
+
+
+        if (!empty($validated['asset_ids'])) {
+            $firstAssetId = $validated['asset_ids'][0];
+            $latestCheckoutLog = \App\Models\Actionlog::where('item_id', $firstAssetId)
+                ->where('item_type', \App\Models\Asset::class)
+                ->where('action_type', 'checkout')
+                ->where('target_id', $target->id)
+                ->orderBy('created_at', 'desc')
+                ->first();
+
+            if ($latestCheckoutLog) {
+                $redirect->with('load_note_url', route('hardware.loadnote', $latestCheckoutLog->id));
+            }
+        }
+        // ==========================================
 
         return $redirect;
     }

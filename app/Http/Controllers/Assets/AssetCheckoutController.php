@@ -231,36 +231,57 @@ return redirect()->route('account.accept.item', $acceptance->id)
     }
 public function printLoadNote($logId)
     {
-        $log = \App\Models\Actionlog::with([
-            'item.model', 
-            'item.company', 
-            'target.department', 
-            'location'
-        ])->findOrFail($logId);
-        
-        // جلب الموظف الذي قام بإنشاء المذكرة بشكل قطعي عبر رقم created_by
+        // تم إزالة 'item.model' و 'item.company' و 'location' لأنها قد لا تتوفر في كل أنواع العناصر (مثل Consumables)
+        // تم ترك 'target.department' لأن الهدف (الموظف) لديه قسم دائماً.
+        $log = \App\Models\Actionlog::with(['item', 'target.department'])->findOrFail($logId);
+
+        // الخدعة: جلب كل حركات الإخراج التي تمت لنفس الشخص في نفس اللحظة (Bulk)
+        // قمنا أيضاً بإزالة 'item.model' من هنا لنفس السبب.
+        $allLogs = \App\Models\Actionlog::with(['item'])
+            ->where('target_id', $log->target_id)
+            ->where('target_type', $log->target_type)
+            ->where('action_type', 'checkout')
+            ->where('created_at', $log->created_at) // نفس وقت التسليم بالضبط
+            ->get();
+
         $issuer = \App\Models\User::with('department')->find($log->created_by);
-        
-        // تمرير المتغير الجديد issuer إلى القالب
-        return view('custom.load-note', compact('log', 'issuer'));
+
+        return view('custom.load-note', compact('log', 'allLogs', 'issuer'));
     }
     public function printLatestLoadNote($assetId)
     {
-        // البحث عن أحدث عملية إخراج لهذا الجهاز تحديداً
-        $log = \App\Models\Actionlog::with([
-            'item.model', 
-            'item.company', 
-            'target.department', 
-            'location'
-        ])
-        ->where('item_id', $assetId)
-        ->where('item_type', \App\Models\Asset::class)
-        ->where('action_type', 'checkout')
-        ->orderBy('id', 'desc')
-        ->firstOrFail();
-        
+        $log = \App\Models\Actionlog::with(['item.model', 'item.company', 'target.department', 'location'])
+            ->where('item_id', $assetId)
+            ->where('item_type', \App\Models\Asset::class)
+            ->where('action_type', 'checkout')
+            ->orderBy('id', 'desc')
+            ->firstOrFail();
+            
+        $allLogs = \App\Models\Actionlog::with(['item.model'])
+            ->where('target_id', $log->target_id)
+            ->where('target_type', $log->target_type)
+            ->where('action_type', 'checkout')
+            ->where('created_at', $log->created_at)
+            ->get();
+            
         $issuer = \App\Models\User::with('department')->find($log->created_by);
         
-        return view('custom.load-note', compact('log', 'issuer'));
+        return view('custom.load-note', compact('log', 'allLogs', 'issuer'));
+    }
+
+    public function printCheckinReceipt($logId)
+    {
+        $log = \App\Models\Actionlog::with(['item.model', 'item.location', 'target.department'])->findOrFail($logId);
+        
+        $allLogs = \App\Models\Actionlog::with(['item.model', 'item.location'])
+            ->where('target_id', $log->target_id)
+            ->where('target_type', $log->target_type)
+            ->where('action_type', 'checkin from')
+            ->where('created_at', $log->created_at)
+            ->get();
+            
+        $receiver = \App\Models\User::find($log->created_by);
+        
+        return view('custom.checkin-receipt', compact('log', 'allLogs', 'receiver'));
     }
 }
