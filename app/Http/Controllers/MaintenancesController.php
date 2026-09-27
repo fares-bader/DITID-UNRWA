@@ -415,4 +415,18 @@ class MaintenancesController extends Controller
 
         return view('maintenances.view')->with('maintenance', $maintenance);
     }
+    /**
+     * Print a Maintenance Gate Pass
+     *
+     * @param  int  $maintenanceId
+     * @return View
+     */
+    public function printGatePass($maintenanceId): View
+    {
+        $maintenance = Maintenance::with(['asset.model.category', 'supplier'])->findOrFail($maintenanceId);
+        
+        $this->authorize('view', $maintenance->asset);
+
+        return view('custom.maintenance-gate-pass', compact('maintenance'));
+    }
 }

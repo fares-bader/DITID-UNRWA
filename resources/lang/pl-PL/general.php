@@ -720,7 +720,7 @@ return [
     'use_cloned_image' => 'Powiel oryginalny obraz',
     'use_cloned_image_help' => 'Możesz powielić oryginalny obraz lub wgrać nowy korzystając z opcji wgrywania poniżej.',
     'use_cloned_no_image_help' => 'Ten środek nie posiada dedykowanego obrazka, a zamiast tego dziedziczy go z modelu lub kategorii, do której należy. Jeśli chcesz użyć dedykowanego obrazka dla tego środka, możesz go wgrać poniżej.',
-    'footer_credit' => '<a target="_blank" href="https://snipeitapp.com" rel="noopener">Snipe-IT</a> is open source software, made with <i class="fa fa-heart" aria-hidden="true" style="color: #a94442; font-size: 10px" /></i><span class="sr-only">love</span> by Grokability, Inc.',
+'footer_credit' => 'UNRWA - SFO - DITID Department - ' . date('Y'),
     'set_password' => 'Ustaw hasło',
     'upload_deleted' => 'Upload Deleted',
     'child_locations' => 'Lokalizacje podrzędne',

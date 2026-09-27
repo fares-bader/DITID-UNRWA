@@ -609,7 +609,12 @@
                                 </a>
                             </li>
                         @endcan
-
+ <li {!! (Request::is('document-center*') ? ' class="active"' : '') !!}>
+                <a href="{{ route('document.center') }}">
+                    <i class="fas fa-file-invoice fa-fw"></i>
+                    <span>Document Center</span>
+                </a>
+            </li>
                         @can('view', \App\Models\User::class)
                                 <li class="treeview{{ (request()->is('users*') ? ' active' : '') }}" id="users-sidenav-option">
                                     <a href="#" {{$snipeSettings->shortcuts_enabled == 1 ? "accesskey=6" : ''}}>
@@ -954,19 +959,6 @@
                 <div class="hidden-xs pull-left">
                     <div class="pull-left footer-links">
                          {!! trans('general.footer_credit') !!}
-
-                        <a target="_blank" href="https://bsky.app/profile/snipeitapp.com" rel="noopener" data-tooltip="true" data-title="Join us on Bluesky">
-                            <i class="fa-brands fa-square-bluesky fa-fw"></i>
-                        </a>
-                        <a target="_blank" href="https://github.com/grokability/snipe-it/" rel="noopener" data-tooltip="true" data-title="Join us on Github">
-                            <i class="fa-brands fa-square-github fa-fw"></i>
-                        </a>
-                        <a target="_blank" href="https://hachyderm.io/@grokability" rel="noopener" data-tooltip="true" data-title="Join us on Mastodon">
-                            <i class="fa-brands fa-mastodon fa-fw"></i>
-                        </a>
-                        <a target="_blank" href="https://discord.gg/yZFtShAcKk" rel="noopener" data-tooltip="true" data-title="Join us on Discord">
-                            <i class="fa-brands fa-discord fa-fw"></i>
-                        </a>
 
                     </div>
                     <div class="pull-right">

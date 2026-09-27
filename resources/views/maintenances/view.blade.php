@@ -1,5 +1,3 @@
-<?php
-?>
 @extends('layouts/default')
 
 {{-- Page title --}}
@@ -216,6 +214,11 @@
                     <x-slot:buttons>
                         <x-button.edit :item="$maintenance" :route="route('maintenances.edit', $maintenance->id)" />
                         <x-button.note :item="$maintenance"/>
+                        
+<a href="{{ route('maintenances.gatepass', $maintenance->id) }}" class="btn btn-sm btn-info hidden-print" target="_blank" rel="noopener" style="margin-right: 5px;">
+                            <i class="fas fa-print fa-fw"></i>
+                        </a>
+
                         @if (! $maintenance->completed_at)
                             @can('update', $maintenance->asset)
                                 <button type="button" class="btn btn-success btn-sm" data-toggle="modal" data-target="#completeMaintenanceModal" data-tooltip="true" title="{{ trans('admin/maintenances/form.mark_complete') }}">
@@ -276,4 +279,3 @@
 
     @include ('partials.bootstrap-table')
 @endsection
-

@@ -720,7 +720,7 @@ return [
     'use_cloned_image' => 'โคลน image จากต้นฉบับ',
     'use_cloned_image_help' => 'คุณอาจโคลน image ต้นฉบับหรือสร้างขึ้นใหม่โดยใช้ช่องอัพโหลดด้านล่างก็ได้',
     'use_cloned_no_image_help' => 'This item does not have an associated image and instead inherits from the model or category it belongs to. If you would like to use a specific image for this item, you can upload a new one below.',
-    'footer_credit' => '<a target="_blank" href="https://snipeitapp.com" rel="noopener">Snipe-IT</a> is open source software, made with <i class="fa fa-heart" aria-hidden="true" style="color: #a94442; font-size: 10px" /></i><span class="sr-only">love</span> by Grokability, Inc.',
+'footer_credit' => 'UNRWA - SFO - DITID Department - ' . date('Y'),
     'set_password' => 'ตั้งรหัสผ่าน',
     'upload_deleted' => 'ลบการอัพโหลดแล้ว',
     'child_locations' => 'สถานที่ย่อย',

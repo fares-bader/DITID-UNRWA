@@ -720,7 +720,7 @@ return [
     'use_cloned_image' => 'Klonovať obrázok z originálu',
     'use_cloned_image_help' => 'Môžete klonovať pôvodný obrázok alebo nahrať nový pomocou poľa na nahranie nižšie.',
     'use_cloned_no_image_help' => 'Táto položka nemá priradený obrázok a namiesto toho dedí z modelu alebo kategórie, do ktorej patrí. Ak chcete pre túto položku použiť konkrétny obrázok, môžete nahrať nový nižšie.',
-    'footer_credit' => '<a target="_blank" href="https://snipeitapp.com" rel="noopener">Snipe-IT</a> is open source software, made with <i class="fa fa-heart" aria-hidden="true" style="color: #a94442; font-size: 10px" /></i><span class="sr-only">love</span> by Grokability, Inc.',
+'footer_credit' => 'UNRWA - SFO - DITID Department - ' . date('Y'),
     'set_password' => 'Nastaviť heslo',
     'upload_deleted' => 'Nahrané súbory boli odstránené',
     'child_locations' => 'Podriadené lokality',

@@ -267,3 +267,5 @@ Route::get('ht/{any?}',
 
     Route::get('hardware/load-note/{logId}', [AssetCheckoutController::class, 'printLoadNote'])->name('hardware.loadnote');
 Route::get('hardware/checkin-receipt/{logId}', [AssetCheckoutController::class, 'printCheckinReceipt'])->name('hardware.checkin_receipt');
+Route::get('hardware/maintenances/{maintenanceId}/gate-pass', [\App\Http\Controllers\MaintenancesController::class, 'printGatePass'])->name('maintenances.gatepass');
+Route::get('document-center', [\App\Http\Controllers\LoadNotesController::class, 'index'])->name('document.center');
