@@ -122,23 +122,64 @@
         </tr>
     </table>
 
+@php
+        // استخراج المكاتب الفرعية (Sub-Units) من الحقول المخصصة للمواد المسلمة
+        $subUnits = [];
+        foreach($allLogs as $singleLog) {
+            if ($singleLog->item_type === \App\Models\Asset::class && $singleLog->item && $singleLog->item->model && $singleLog->item->model->fieldset) {
+                foreach($singleLog->item->model->fieldset->fields as $field) {
+                    // نبحث عن الحقل الذي يحتوي على كلمة Sub-Department أو Unit
+                    if (stripos($field->name, 'Sub-Department') !== false || stripos($field->name, 'Unit') !== false || stripos($field->name, 'Office') !== false) {
+                        $val = $singleLog->item->{$field->db_column};
+                        if (!empty($val)) {
+                            $subUnits[] = $val;
+                        }
+                    }
+                }
+            }
+        }
+        $subUnits = array_unique(array_filter($subUnits));
+    @endphp
+
     <table style="margin-bottom: 15px; width: 100%;">
         <tr>
             <td style="width: 100%;">
                 <table style="width: 100%;">
                     <tr>
                         <td style="width: 140px; padding-top: 2px;">TO BE DELIVERED TO</td>
-                        <td class="value-line" style="width: 60%;">{{ $log->target?->name ?? '_____________________' }}</td>
+                        <td class="value-line" style="width: 60%; line-height: 1.6; padding-bottom: 5px;">
+                            <!-- الاسم الأساسي للمستلم (تم تصحيح طريقة جلب الاسم هنا) -->
+                            <span style="font-size: 13px;">{{ $log->target?->display_name ?? $log->target?->name ?? '_____________________' }}</span>
+                            
+                            <!-- القسم الرئيسي -->
+                            @if(isset($log->target?->department))
+                                <span style="font-size: 11px; color: #333;"><strong>/ Dept:</strong> {{ $log->target->department->name }}</span>
+                            @endif
+
+                            <!-- الموقع الجغرافي الهرمي -->
+                            @if(isset($log->target?->location))
+                                <span style="font-size: 11px; color: #333;">
+                                    <strong>/ Loc:</strong> {{ $log->target->location->name }}
+                                    @if($log->target->location->parent)
+                                        ({{ $log->target->location->parent->name }})
+                                    @endif
+                                </span>
+                            @endif
+
+                            <!-- المكاتب والوحدات الفرعية -->
+                            @if(!empty($subUnits))
+                                <span style="font-size: 11px; color: #333;"><strong>/ </strong> {{ implode(' , ', $subUnits) }}</span>
+                            @endif
+                        </td>
                         <td></td>
                     </tr>
-                    <tr><td></td><td class="small-text" style="text-align: center;">Consignee</td><td></td></tr>
+                    <tr><td></td><td class="small-text" style="text-align: center;">Consignee Details</td><td></td></tr>
                 </table>
             </td>
         </tr>
     </table>
-
     <!-- Order Info & Signatures -->
-    <table style="margin-top: 15px;">
+<table style="margin-top: 15px;">
         <tr>
             <td style="width: 45%;">
                 <table style="border: 1px solid #000; height: 45px;">
@@ -153,9 +194,19 @@
             </td>
             <td style="width: 55%; padding-left: 20px; vertical-align: bottom; padding-bottom: 5px;">
                 <table style="width: 100%;">
+                    @if($isTransfer && $checkinLog && $checkinLog->user)
                     <tr>
-                        <td style="width: 60px;">Issued By:</td>
-                        <td class="value-line" style="text-align: center;">{{ $issuer?->first_name ?? '' }} {{ $issuer?->last_name ?? '' }}</td>
+                        <td style="width: 100px; padding-bottom: 5px;" class="small-text">Requested By</td>
+                        <td class="value-line" style="text-align: center; font-size: 11px;">
+                            {{ $checkinLog->user->first_name ?? '' }} {{ $checkinLog->user->last_name ?? '' }}
+                        </td>
+                    </tr>
+                    @endif
+                    <tr>
+                        <td style="width: 100px;" class="small-text">Approved & Issued By</td>
+                        <td class="value-line" style="text-align: center; font-size: 11px;">
+                            {{ $issuer?->first_name ?? '' }} {{ $issuer?->last_name ?? '' }}
+                        </td>
                     </tr>
                 </table>
             </td>
@@ -184,18 +235,23 @@
             </tr>
         </thead>
         <tbody>
-            @foreach($allLogs as $index => $singleLog)
+@foreach($allLogs as $index => $singleLog)
                 @php
                     $item = $singleLog->item;
                     $grossWeight = 0; $netWeight = 0; $sapPo = '';
+                    $newLocator = ''; $oldLocator = ''; // متغيرات الـ Locators
                     
-                    // 1. استخراج الأوزان ورقم الطلبية فقط في حال كانت المادة "جهازاً" ولها حقول مخصصة
+                    // 1. استخراج الأوزان ورقم الطلبية والـ Locators من الحقول المخصصة
                     if ($singleLog->item_type === \App\Models\Asset::class && $item && $item->model && $item->model->fieldset) {
                         foreach($item->model->fieldset->fields as $field) {
                             $fieldName = strtolower(trim($field->name));
                             if (str_contains($fieldName, 'gross weight')) { $grossWeight = (float) $item->{$field->db_column}; }
                             if (str_contains($fieldName, 'net weight')) { $netWeight = (float) $item->{$field->db_column}; }
                             if (str_contains($fieldName, 'sap') || str_contains($fieldName, 'po')) { $sapPo = $item->{$field->db_column}; }
+                            
+                            // التقاط قيم الـ Locators
+                            if (str_contains($fieldName, 'new locator')) { $newLocator = $item->{$field->db_column}; }
+                            if (str_contains($fieldName, 'old locator')) { $oldLocator = $item->{$field->db_column}; }
                         }
                     }
                     $totalGrossWeight += $grossWeight;
@@ -203,6 +259,9 @@
                     
                     // تحديث رقم الطلبية إذا كان فارغاً
                     if(empty($finalPoNumber)) { $finalPoNumber = $sapPo ?: ($item->order_number ?? ''); }
+
+                    // تحديد اللوكيتر النهائي (الجديد أولاً، وإلا القديم، وإلا فارغ)
+                    $finalLocator = !empty($newLocator) ? $newLocator : (!empty($oldLocator) ? $oldLocator : '');
 
                     // 2. منطق ذكي لتحديد اسم المادة وتفاصيلها بناءً على نوعها
                     $itemName = $item->name ?? 'Unknown Item';
@@ -212,7 +271,12 @@
                     if ($singleLog->item_type === \App\Models\Asset::class) {
                         // إذا كان جهازاً
                         $itemName = $item->model->name ?? $item->name ?? 'Asset';
-                        $itemDetails = "LC: " . ($item->asset_tag ?? '-') . " &nbsp;&nbsp;|&nbsp;&nbsp; ST: " . ($item->serial ?? '-');
+                        
+                        // عرض رقم الوكالة LC، وإضافة اللوكيتر إذا وُجد (مع إزالة السيريال نمبر)
+                        $itemDetails = "Asset Tag: " . ($item->asset_tag ?? '-');
+                        if (!empty($finalLocator)) {
+                            $itemDetails .= " &nbsp;&nbsp;|&nbsp;&nbsp; <strong style='color:#333;'>Locator: " . $finalLocator . "</strong>";
+                        }
                     } elseif ($singleLog->item_type === \App\Models\Consumable::class) {
                         // إذا كان مستهلكاً
                         $itemName = $item->name ?? 'Consumable';

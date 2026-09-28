@@ -611,7 +611,7 @@
                             <table class="table table-striped snipe-table">
                                 <thead>
                                     <tr>
-                                        <th>Load Note No.</th> <!-- العمود الجديد -->
+                                        <th>Document No.</th> <!-- عدلنا الاسم ليكون شاملاً -->
                                         <th>Date</th>
                                         <th>No. of Items</th>
                                         <th>Items</th>
@@ -634,12 +634,34 @@
                                     @endphp
                                     
                                     @forelse($loadNotes as $timestamp => $logs)
+                                        @php
+                                            // الكود الذكي لمعرفة ما إذا كانت العملية نقل (Transfer) أم تسليم عادي
+                                            $firstLog = $logs->first();
+                                            $isTransfer = false;
+                                            
+                                            if ($firstLog && $firstLog->item_type === \App\Models\Asset::class) {
+                                                $checkin = \App\Models\Actionlog::where('item_id', $firstLog->item_id)
+                                                    ->where('action_type', 'checkin from')
+                                                    ->where('created_at', '>=', \Carbon\Carbon::parse($firstLog->created_at)->subMinutes(1))
+                                                    ->where('created_at', '<=', \Carbon\Carbon::parse($firstLog->created_at)->addSeconds(5))
+                                                    ->first();
+                                                if ($checkin) {
+                                                    $isTransfer = true;
+                                                }
+                                            }
+                                        @endphp
                                         <tr>
                                             <td style="vertical-align: middle; font-weight: bold; color: #5fa4cc;">
-                                                ISD/{{ date('y', strtotime($timestamp)) }}/{{ $logs->first()->id }}
+                                                ISD/{{ date('y', strtotime($timestamp)) }}/{{ $firstLog->id }}<br>
+                                                <!-- الشارة الملونة للتمييز البصري -->
+                                                @if($isTransfer)
+                                                    <span class="badge bg-orange" style="font-size: 11px; margin-top: 5px;">Transfer Note</span>
+                                                @else
+                                                    <span class="badge bg-maroon" style="font-size: 11px; margin-top: 5px;">Load Note</span>
+                                                @endif
                                             </td>
                                             <td style="vertical-align: middle; font-weight: bold;">{{ $timestamp }}</td>
-                                            <td style="vertical-align: middle;"><span class="badge bg-maroon" style="font-size: 13px;">{{ $logs->count() }}</span></td>
+                                            <td style="vertical-align: middle;"><span class="badge {{ $isTransfer ? 'bg-orange' : 'bg-maroon' }}" style="font-size: 13px;">{{ $logs->count() }}</span></td>
                                             <td>
                                                 <ul style="padding-left: 15px; margin-bottom: 0; line-height: 1.8;">
                                                 @foreach($logs as $log)
@@ -660,19 +682,19 @@
                                                 </ul>
                                             </td>
                                             <td style="vertical-align: middle;">
-                                                <strong>{{ $logs->first()->driver_name ?? '-' }}</strong><br>
-                                                <span class="text-muted">{{ $logs->first()->vehicle_number ?? '' }}</span>
+                                                <strong>{{ $firstLog->driver_name ?? '-' }}</strong><br>
+                                                <span class="text-muted">{{ $firstLog->vehicle_number ?? '' }}</span>
                                             </td>
-                                            <td style="vertical-align: middle;">{{ $logs->first()->contract_po_number ?? '-' }}</td>
+                                            <td style="vertical-align: middle;">{{ $firstLog->contract_po_number ?? '-' }}</td>
                                             <td style="vertical-align: middle;">
-                                                <a href="{{ config('app.url') }}/hardware/load-note/{{ $logs->first()->id }}" target="_blank" class="btn btn-sm btn-info" data-tooltip="true" title="Print Combined Note">
+                                                <a href="{{ config('app.url') }}/hardware/load-note/{{ $firstLog->id }}" target="_blank" class="btn btn-sm btn-info" data-tooltip="true" title="Print Document">
                                                     <i class="fas fa-print"></i> Print
                                                 </a>
                                             </td>
                                         </tr>
                                     @empty
                                         <tr>
-                                            <td colspan="7" class="text-center text-muted" style="padding: 20px;">No Load Notes found</td>
+                                            <td colspan="7" class="text-center text-muted" style="padding: 20px;">No Documents found</td>
                                         </tr>
                                     @endforelse
                                 </tbody>
