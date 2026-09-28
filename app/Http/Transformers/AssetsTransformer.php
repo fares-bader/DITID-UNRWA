@@ -125,8 +125,21 @@ class AssetsTransformer
             'requests_counter' => (int) $asset->requests_counter,
             'user_can_checkout' => (bool) $asset->availableForCheckout(),
             'book_value' => Helper::formatCurrencyOutput($asset->getDepreciatedValue()),
+            
         ];
+$loadNoteNo = '-';
+        if ($asset->assigned_to) {
+            $lastCheckout = \App\Models\Actionlog::where('item_id', $asset->id)
+                ->where('item_type', \App\Models\Asset::class)
+                ->where('action_type', 'checkout')
+                ->latest('id')
+                ->first();
 
+            if ($lastCheckout) {
+                $loadNoteNo = '<a href="'.url('/hardware/load-note/'.$lastCheckout->id).'" target="_blank" class="badge bg-maroon" data-tooltip="true" title="Print Load Note">ISD/' . \Carbon\Carbon::parse($lastCheckout->created_at)->format('y') . '/' . $lastCheckout->id . '</a>';
+            }
+        }
+        $array['load_note'] = $loadNoteNo;
         if (($asset->model) && ($asset->model->fieldset) && ($asset->model->fieldset->fields->count() > 0)) {
             $fields_array = [];
 

@@ -118,6 +118,14 @@ class AssetPresenter extends Presenter
                 'title' => trans('admin/hardware/form.checkedout_to'),
                 'visible' => true,
                 'formatter' => 'polymorphicItemFormatter',
+            ],
+            [
+                'field' => 'load_note',
+                'searchable' => false,
+                'sortable' => false,
+                'title' => 'Load Note No.',
+                'visible' => true,
+                'formatter' => 'customHtmlFormatter',
             ], [
                 'field' => 'employee_number',
                 'scope' => 'col',

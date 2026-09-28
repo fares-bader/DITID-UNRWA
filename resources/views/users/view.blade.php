@@ -39,16 +39,9 @@
                     <x-tabs.user-tab count="{{ $user->managesUsers()->count() }}" name="managed-users" icon_type="manager" :label="trans('admin/users/table.managed_users')"/>
                     <x-tabs.history-tab count="{{ $user->history->count() }}" :model="$user"/>
                     <x-tabs.upload-tab :item="$user"/>
-                    <li class="nav-item">
-                        <a href="#loadnotes" data-toggle="tab" class="nav-link">
-                            <i class="fas fa-file-invoice fa-fw"></i> Load Notes
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="#checkinreceipts" data-toggle="tab" class="nav-link">
-                            <i class="fas fa-file-signature fa-fw"></i> Return Receipts
-                        </a>
-                    </li>
+                    <x-tabs.loadnotes-tab count="{{ \App\Models\Actionlog::where('target_id', $user->id)->where('target_type', \App\Models\User::class)->where('action_type', 'checkout')->count() }}" />
+                    
+                    <x-tabs.checkinreceipts-tab count="{{ \App\Models\Actionlog::where('target_id', $user->id)->where('target_type', \App\Models\User::class)->where('action_type', 'checkin from')->count() }}" />
                 </x-slot:tabnav>
 
 
@@ -613,11 +606,12 @@
                     <!-- end history tab pane -->
 
                     <!-- بداية قسم مذكرات التسليم (Load Notes) -->
-                    <x-tabs.pane name="loadnotes">
+<x-tabs.pane name="loadnotes">
                         <div class="table-responsive" style="margin-top: 20px;">
                             <table class="table table-striped snipe-table">
                                 <thead>
                                     <tr>
+                                        <th>Load Note No.</th> <!-- العمود الجديد -->
                                         <th>Date</th>
                                         <th>No. of Items</th>
                                         <th>Items</th>
@@ -628,7 +622,6 @@
                                 </thead>
                                 <tbody>
                                     @php
-                                        // قمنا بإزالة with('item.model') لتجنب الخطأ الخاص بالـ Consumables
                                         $loadNotes = \App\Models\Actionlog::with('item')
                                             ->where('target_id', $user->id)
                                             ->where('target_type', \App\Models\User::class)
@@ -642,6 +635,9 @@
                                     
                                     @forelse($loadNotes as $timestamp => $logs)
                                         <tr>
+                                            <td style="vertical-align: middle; font-weight: bold; color: #5fa4cc;">
+                                                ISD/{{ date('y', strtotime($timestamp)) }}/{{ $logs->first()->id }}
+                                            </td>
                                             <td style="vertical-align: middle; font-weight: bold;">{{ $timestamp }}</td>
                                             <td style="vertical-align: middle;"><span class="badge bg-maroon" style="font-size: 13px;">{{ $logs->count() }}</span></td>
                                             <td>
@@ -676,7 +672,7 @@
                                         </tr>
                                     @empty
                                         <tr>
-                                            <td colspan="6" class="text-center text-muted" style="padding: 20px;">No Load Notes found</td>
+                                            <td colspan="7" class="text-center text-muted" style="padding: 20px;">No Load Notes found</td>
                                         </tr>
                                     @endforelse
                                 </tbody>
@@ -684,11 +680,12 @@
                         </div>
                     </x-tabs.pane>
 <!-- بداية قسم إشعارات الإرجاع (Return Receipts) -->
-                    <x-tabs.pane name="checkinreceipts">
+  <x-tabs.pane name="checkinreceipts">
                         <div class="table-responsive" style="margin-top: 20px;">
                             <table class="table table-striped snipe-table">
                                 <thead>
                                     <tr>
+                                        <th>Receipt No.</th> <!-- العمود الجديد -->
                                         <th>Date</th>
                                         <th>No. of Items</th>
                                         <th>Returned Items</th>
@@ -698,7 +695,6 @@
                                 </thead>
                                 <tbody>
                                     @php
-                                        // قمنا بإزالة 'item.model' لتجنب الخطأ
                                         $returnLogs = \App\Models\Actionlog::with(['item', 'user'])
                                             ->where('target_id', $user->id)
                                             ->where('target_type', \App\Models\User::class)
@@ -712,6 +708,9 @@
                                     
                                     @forelse($returnLogs as $timestamp => $logs)
                                         <tr>
+                                            <td style="vertical-align: middle; font-weight: bold; color: #605ca8;">
+                                                RTN-{{ $logs->first()->id }}
+                                            </td>
                                             <td style="vertical-align: middle; font-weight: bold;">{{ $timestamp }}</td>
                                             <td style="vertical-align: middle;"><span class="badge bg-purple" style="font-size: 13px;">{{ $logs->count() }}</span></td>
                                             <td>
@@ -744,13 +743,13 @@
                                         </tr>
                                     @empty
                                         <tr>
-                                            <td colspan="5" class="text-center text-muted" style="padding: 20px;">No Return Receipts found</td>
+                                            <td colspan="6" class="text-center text-muted" style="padding: 20px;">No Return Receipts found</td>
                                         </tr>
                                     @endforelse
                                 </tbody>
                             </table>
                         </div>
-                    </x-tabs.pane>
+                    </x-tabs.pane>>
                     <!-- نهاية قسم إشعارات الإرجاع -->
                 </x-slot:tabpanes>
             </x-tabs>

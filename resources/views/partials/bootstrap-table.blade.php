@@ -3779,6 +3779,12 @@ if (dest === 'hardware' && row.assigned_to) {
         updateTopScrollbar();
     });
 
-</script>
     
+
+</script>
+    <script nonce="{{ csrf_token() }}">
+    function customHtmlFormatter(value) {
+        return value ? value : '-';
+    }
+</script>
 @endpush
