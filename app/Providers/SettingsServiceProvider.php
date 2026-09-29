@@ -32,7 +32,29 @@ class SettingsServiceProvider extends ServiceProvider
             $view->with('snipeSettings', Setting::getSettings());
             $view->with('settings', Setting::getSettings());
         });
+$settings = Setting::getSettings();
+        if ($settings && $settings->smtp_host) {
+            $smtp_password = null;
+            if ($settings->smtp_password) {
+                try {
+                    $smtp_password = \Illuminate\Support\Facades\Crypt::decrypt($settings->smtp_password);
+                } catch (\Exception $e) {
+                    $smtp_password = null;
+                }
+            }
 
+            config([
+                'mail.default' => 'smtp',
+                'mail.mailers.smtp.transport' => 'smtp',
+                'mail.mailers.smtp.host' => $settings->smtp_host,
+                'mail.mailers.smtp.port' => $settings->smtp_port,
+                'mail.mailers.smtp.encryption' => $settings->smtp_encryption,
+                'mail.mailers.smtp.username' => $settings->smtp_username,
+                'mail.mailers.smtp.password' => $smtp_password,
+                'mail.from.address' => $settings->smtp_from_address ?: config('mail.from.address'),
+                'mail.from.name' => $settings->smtp_from_name ?: config('mail.from.name'),
+            ]);
+        }
         /**
          * Set some common variables so that they're globally available.
          * The paths should always be public (versus private uploads)

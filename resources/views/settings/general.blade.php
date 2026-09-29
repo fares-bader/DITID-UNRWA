@@ -217,7 +217,53 @@
                                 />
                             </fieldset>
 
+<fieldset>
+                                <x-form.legend>
+                                    <i class="fas fa-envelope"></i> UNRWA SMTP Settings
+                                </x-form.legend>
 
+                                <x-form.row name="smtp_host" label="SMTP Host (Server)">
+                                    <x-slot:input>
+                                        <x-input.text name="smtp_host" :value="old('smtp_host', $setting->smtp_host)" placeholder="e.g. smtp.office365.com" />
+                                    </x-slot:input>
+                                </x-form.row>
+
+                                <x-form.row name="smtp_port" label="SMTP Port">
+                                    <x-slot:input>
+                                        <x-input.text name="smtp_port" :value="old('smtp_port', $setting->smtp_port)" placeholder="e.g. 587" />
+                                    </x-slot:input>
+                                </x-form.row>
+
+                                <x-form.row name="smtp_encryption" label="Encryption">
+                                    <x-slot:input>
+                                        <x-input.text name="smtp_encryption" :value="old('smtp_encryption', $setting->smtp_encryption)" placeholder="tls or ssl" />
+                                    </x-slot:input>
+                                </x-form.row>
+
+                                <x-form.row name="smtp_username" label="SMTP Username">
+                                    <x-slot:input>
+                                        <x-input.text name="smtp_username" :value="old('smtp_username', $setting->smtp_username)" placeholder="email@unrwa.org" />
+                                    </x-slot:input>
+                                </x-form.row>
+
+                                <x-form.row name="smtp_password" label="SMTP Password">
+                                    <x-slot:input>
+                                        <input type="password" class="form-control" name="smtp_password" placeholder="Leave blank to keep current password">
+                                    </x-slot:input>
+                                </x-form.row>
+
+                                <x-form.row name="smtp_from_address" label="Sender Address (From)">
+                                    <x-slot:input>
+                                        <x-input.text name="smtp_from_address" :value="old('smtp_from_address', $setting->smtp_from_address)" placeholder="noreply@unrwa.org" />
+                                    </x-slot:input>
+                                </x-form.row>
+
+                                <x-form.row name="smtp_from_name" label="Sender Name (From)">
+                                    <x-slot:input>
+                                        <x-input.text name="smtp_from_name" :value="old('smtp_from_name', $setting->smtp_from_name)" placeholder="UNRWA IT Service Desk" />
+                                    </x-slot:input>
+                                </x-form.row>
+                            </fieldset>
                             <fieldset>
                                 <x-form.legend>
                                     {{ trans('general.email') }}

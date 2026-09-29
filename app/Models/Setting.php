@@ -67,6 +67,13 @@ class Setting extends Model
         'google_client_id',
         'google_client_secret',
         'manager_view_enabled',
+        'smtp_host',
+        'smtp_port',
+        'smtp_username',
+        'smtp_password',
+        'smtp_encryption',
+        'smtp_from_address',
+        'smtp_from_name',
     ];
 
     protected $casts = [

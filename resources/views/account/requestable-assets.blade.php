@@ -22,17 +22,9 @@
                 </x-alert>
             </div>
         @else
-        
-        <!-- زر الطلب الجماعي السحري -->
-        <div class="row" style="margin-bottom: 15px; padding-left: 15px;">
-            <div class="col-md-12">
-                <button id="bulkRequestBtn" class="btn btn-primary btn-lg">
-                    <i class="fas fa-shopping-cart"></i> Request Selected Items
-                </button>
-            </div>
-        </div>
 
-        <div class="nav-tabs-custom">
+
+<div class="nav-tabs-custom">
             <ul class="nav nav-tabs">
                 @if ($assets->count() > 0)
                 <li class="active">
@@ -55,6 +47,13 @@
                     </a>
                 </li>
                 @endif
+
+                <!-- زر الطلب الجماعي السحري: تم دمجه في الجهة اليمنى من شريط التبويبات -->
+                <li class="pull-right" style="padding: 6px 15px 0 0;">
+                    <button id="bulkRequestBtn" class="btn btn-primary btn-sm" data-tooltip="true" title="Request all selected items">
+                        <i class="fas fa-shopping-cart"></i> Request Selected
+                    </button>
+                </li>
             </ul>
             
             <div class="tab-content">

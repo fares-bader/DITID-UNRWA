@@ -149,7 +149,20 @@ class SettingsController extends Controller
         $setting->profile_edit = $request->input('profile_edit', 0);
         $setting->require_checkinout_notes = $request->input('require_checkinout_notes', 0);
         $setting->manager_view_enabled = $request->input('manager_view_enabled', 0);
-
+if (! config('app.lock_passwords')) {
+            $setting->smtp_host = $request->input('smtp_host');
+            $setting->smtp_port = $request->input('smtp_port');
+            $setting->smtp_username = $request->input('smtp_username');
+            
+            // تشفير كلمة المرور لحمايتها في قاعدة البيانات
+            if ($request->filled('smtp_password')) {
+                $setting->smtp_password = Crypt::encrypt($request->input('smtp_password'));
+            }
+            
+            $setting->smtp_encryption = $request->input('smtp_encryption');
+            $setting->smtp_from_address = $request->input('smtp_from_address');
+            $setting->smtp_from_name = $request->input('smtp_from_name');
+        }
         if ($request->input('per_page') != '') {
             $setting->per_page = $request->input('per_page');
         } else {

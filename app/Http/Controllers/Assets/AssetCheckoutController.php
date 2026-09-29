@@ -248,24 +248,40 @@ public function printLoadNote($logId)
 
         return view('custom.load-note', compact('log', 'allLogs', 'issuer'));
     }
-    public function printLatestLoadNote($assetId)
+public function printLatestLoadNote($assetId)
     {
-        $log = \App\Models\Actionlog::with(['item.model', 'item.company', 'target.department', 'location'])
+        // سحب السجل الأساسي الذي ضغطنا لطباعته (بدون إجبار تحميل الموديل هنا لتفادي الخطأ)
+        $log = \App\Models\Actionlog::with(['item', 'target.department', 'location'])
             ->where('item_id', $assetId)
             ->where('item_type', \App\Models\Asset::class)
             ->where('action_type', 'checkout')
             ->orderBy('id', 'desc')
             ->firstOrFail();
-            
-        $allLogs = \App\Models\Actionlog::with(['item.model'])
+
+        // سحب كل السجلات التي تم تسليمها لنفس الموظف في نفس اللحظة (مذكرة التجميع)
+        $allLogsRaw = \App\Models\Actionlog::with(['item'])
             ->where('target_id', $log->target_id)
             ->where('target_type', $log->target_type)
             ->where('action_type', 'checkout')
             ->where('created_at', $log->created_at)
             ->get();
-            
+
+        // التحميل الذكي (Eager Loading): نحمل الـ Model فقط إذا كانت المادة Asset لتفادي خطأ الإكسسوارات
+        $allLogs = $allLogsRaw->map(function ($singleLog) {
+            if ($singleLog->item_type === \App\Models\Asset::class && $singleLog->item) {
+                // تحميل الموديل والشركة فقط للأجهزة
+                $singleLog->item->load(['model', 'company']);
+            }
+            return $singleLog;
+        });
+
+        // إذا كان الجهاز الأساسي نفسه Asset، نحمل موديله للترويسة (إن لزم)
+        if ($log->item_type === \App\Models\Asset::class && $log->item) {
+            $log->item->load(['model', 'company']);
+        }
+
         $issuer = \App\Models\User::with('department')->find($log->created_by);
-        
+
         return view('custom.load-note', compact('log', 'allLogs', 'issuer'));
     }
 
