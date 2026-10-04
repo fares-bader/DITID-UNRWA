@@ -41,10 +41,21 @@
             </x-tabs>
 
         </x-page-column>
-        <x-page-column class="col-md-3">
+<x-page-column class="col-md-3">
             <x-box class="side-box expanded">
-                <x-info-panel :infoPanelObj="$department" img_path="{{ app('departments_upload_url') }}">
+                
+                <!-- عرض القسم الأب (UNRWA Customization) -->
+                @if($department->parent)
+                    <div style="padding: 15px; border-bottom: 1px solid #f4f4f4; text-align: center;">
+                        <span class="text-muted"><i class="fa-solid fa-sitemap"></i> Parent Department:</span><br>
+                        <strong style="font-size: 15px;">
+                            <a href="{{ route('departments.show', $department->parent->id) }}">{{ $department->parent->name }}</a>
+                        </strong>
+                    </div>
+                @endif
+                <!-- ===================================== -->
 
+                <x-info-panel :infoPanelObj="$department" img_path="{{ app('departments_upload_url') }}">
                     <x-slot:buttons>
                         <x-button.edit :item="$department" :route="route('departments.edit', $department->id)"/>
                         <x-button.delete :item="$department"/>

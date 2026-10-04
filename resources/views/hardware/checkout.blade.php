@@ -104,7 +104,20 @@
                         :default_now="false"
                         input_div_class="col-md-4"
                     />
-
+<!-- CC Email (UNRWA Customization) -->
+<div class="form-group {{ $errors->has('cc_email') ? 'has-error' : '' }}">
+    <label for="cc_email" class="col-md-3 control-label">CC Email (Manager/Security)</label>
+    <div class="col-md-7 col-sm-12">
+        <div class="input-group">
+            <span class="input-group-addon"><i class="fas fa-envelope"></i></span>
+            <input class="form-control" type="email" name="cc_email" id="cc_email" value="{{ old('cc_email') }}" placeholder="security@unrwa.org">
+        </div>
+        <p class="help-block" style="font-size: 11px; margin-top: 5px;">
+            Optional: Send a PDF copy of the Load Note to this email / سيتم إرسال نسخة PDF من المذكرة لهذا البريد
+        </p>
+        {!! $errors->first('cc_email', '<span class="alert-msg" aria-hidden="true"><i class="fas fa-times" aria-hidden="true"></i> :message</span>') !!}
+    </div>
+</div>
                     <x-form.row
                         :label="trans('general.notes')"
                         name="note"

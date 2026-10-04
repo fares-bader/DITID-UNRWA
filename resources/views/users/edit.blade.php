@@ -411,7 +411,7 @@
                                   :excludeId="$user->id ?? null"
                               />
 
-                              <!--  Department -->
+<!--  Department -->
                               <x-form.row :label="trans('general.department')" name="department_id" :item="$user">
                                   <x-slot:input>
                                       <select class="js-data-ajax" data-endpoint="departments" data-placeholder="{{ trans('general.select_department') }}" name="department_id" id="department_select" aria-label="department_id" style="width: 100%">
@@ -423,7 +423,17 @@
                                       </select>
                                   </x-slot:input>
                               </x-form.row>
-
+<!-- Sub-Department / Unit (UNRWA Customization) -->
+                              <x-form.row label="Sub-Department / Unit" name="sub_department" :item="$user" help_text="Select the specific sub-department based on the main department.">
+                                  <x-slot:input>
+                                      <select class="form-control select2" name="sub_department" id="sub_department" style="width: 100%;">
+                                          <option value="">Select Sub-Department...</option>
+                                          @if(old('sub_department', $user->sub_department))
+                                              <option value="{{ old('sub_department', $user->sub_department) }}" selected="selected">{{ old('sub_department', $user->sub_department) }}</option>
+                                          @endif
+                                      </select>
+                                  </x-slot:input>
+                              </x-form.row>
                               <x-form.row
                                   :label="trans('general.start_date')"
                                   name="start_date"
@@ -659,8 +669,63 @@
                     ]"
                     />
                 </x-slot:footer>
-            </x-tabs>
+           </x-tabs>
         </x-form>
     </x-container>
-@stop
+@stop   {{-- <--- هذا هو السطر الذي كان مفقوداً وأصلح مشكلة التصميم --}}
 
+@section('moar_scripts')
+    <script>
+        // هذا المعترض الذكي (Prefilter) يلتقط طلب الـ API قبل ذهابه للسيرفر
+        // ويخبره: إذا كنت تبحث عن الأقسام الأساسية، أضف main_only=1 بصمت!
+        $.ajaxPrefilter(function(options, originalOptions, jqXHR) {
+            if (options.url && options.url.indexOf('/api/v1/departments/selectlist') !== -1) {
+                // التأكد أن هذا الطلب ليس للأقسام الفرعية
+                if (options.url.indexOf('parent_id') === -1 && (!options.data || options.data.indexOf('parent_id') === -1)) {
+                    options.url += (options.url.indexOf('?') === -1 ? '?' : '&') + 'main_only=1';
+                }
+            }
+        });
+
+        $(document).ready(function() {
+            // تفعيل تصميم Select2 على القائمة المنسدلة
+            $('#sub_department').select2();
+
+            var existingSubDept = "{{ old('sub_department', $user->sub_department ?? '') }}";
+
+            // دالة لجلب الأقسام الفرعية من الـ API
+            function fetchSubDepartments(parentId, selectedValue = '') {
+                var $subDept = $('#sub_department');
+                $subDept.empty().append('<option value="">Select Sub-Department...</option>');
+
+                if (parentId) {
+                    $.ajax({
+                        url: "{{ route('api.departments.selectlist') }}",
+                        dataType: 'json',
+                        data: {
+                            parent_id: parentId // نرسل رقم القسم الرئيسي
+                        },
+                        success: function(data) {
+                            $.each(data.items, function(index, item) {
+                                var isSelected = (item.text === selectedValue);
+                                $subDept.append(new Option(item.text, item.text, isSelected, isSelected));
+                            });
+                            $subDept.trigger('change');
+                        }
+                    });
+                }
+            }
+
+            // عند تغيير القسم الرئيسي يدوياً
+            $('#department_select').on('change', function() {
+                var parentId = $(this).val();
+                fetchSubDepartments(parentId, ''); 
+            });
+
+            // عند فتح صفحة (تعديل موظف)، نقوم بجلب الأقسام الفرعية للقسم المحدد مسبقاً
+            if ($('#department_select').val()) {
+                fetchSubDepartments($('#department_select').val(), existingSubDept);
+            }
+        });
+    </script>
+@stop

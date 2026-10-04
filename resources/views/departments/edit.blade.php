@@ -54,7 +54,20 @@
                     input_group_addon="left"
                     :maxlength="34"
                 />
-
+<!-- Parent Department (UNRWA Customization) -->
+                <x-form.row :label="'Parent Department'" name="parent_id" :item="$item">
+                    <x-slot:input>
+                        <select class="js-data-ajax" data-endpoint="departments" data-placeholder="Select Parent Department (Leave blank if Main)" name="parent_id" id="parent_id" style="width: 100%">
+                            @if ($parent_id = old('parent_id', $item->parent_id))
+                                <option value="{{ $parent_id }}" selected="selected">
+                                    {{ (\App\Models\Department::find($parent_id))?->name }}
+                                </option>
+                            @else
+                                <option value="" selected="selected">None (This is a Main Department)</option>
+                            @endif
+                        </select>
+                    </x-slot:input>
+                </x-form.row>
                 <x-input.user-select
                     :label="trans('admin/users/table.manager')"
                     name="manager_id"

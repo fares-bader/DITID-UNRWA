@@ -48,6 +48,7 @@ class Department extends SnipeModel
         'location_id' => 'numeric|nullable|exists:locations,id',
         'company_id' => 'numeric|nullable|exists:companies,id|fmcs_company',
         'manager_id' => 'numeric|nullable|exists:users,id',
+        'parent_id' => 'numeric|nullable',
         'phone' => 'string|max:255|nullable',
         'fax' => 'string|max:255|nullable',
         'notes' => 'string|max:255|nullable',
@@ -65,6 +66,7 @@ class Department extends SnipeModel
         'fax',
         'location_id',
         'company_id',
+        'parent_id',
         'manager_id',
         'tag_color',
         'notes',
@@ -196,5 +198,17 @@ class Department extends SnipeModel
     public function scopeOrderByCreatedBy($query, $order)
     {
         return $query->leftJoin('users as admin_sort', 'departments.created_by', '=', 'admin_sort.id')->select('departments.*')->orderBy('admin_sort.first_name', $order)->orderBy('admin_sort.last_name', $order);
+    }
+    /**
+     * UNRWA Customization: Department Parent/Child relationships
+     */
+    public function parent()
+    {
+        return $this->belongsTo(Department::class, 'parent_id');
+    }
+
+    public function children()
+    {
+        return $this->hasMany(Department::class, 'parent_id');
     }
 }

@@ -49,6 +49,13 @@ class DepartmentPresenter extends Presenter
                 'title' => trans('general.company'),
                 'visible' => false,
                 'formatter' => 'companiesLinkObjFormatter',
+            ],
+                        [
+                "field" => "parent",
+                "searchable" => false,
+                "sortable" => false,
+                "title" => "Parent Department",
+                "formatter" => "departmentsLinkObjFormatter",
             ], [
                 'field' => 'image',
                 'scope' => 'col',
@@ -134,6 +141,7 @@ class DepartmentPresenter extends Presenter
                 'printIgnore' => true,
                 'class' => 'hidden-print',
             ],
+
         ];
 
         return json_encode($layout);

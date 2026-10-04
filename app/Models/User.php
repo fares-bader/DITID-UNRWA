@@ -116,6 +116,7 @@ class User extends SnipeModel implements AuthenticatableContract, AuthorizableCo
         'vip',
         'autoassign_licenses',
         'website',
+        'sub_department',
     ];
 
     protected $casts = [

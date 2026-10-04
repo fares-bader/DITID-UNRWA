@@ -33,6 +33,7 @@ class DepartmentsController extends Controller
             [
                 'departments.id',
                 'departments.name',
+                'departments.parent_id',
                 'departments.phone',
                 'departments.fax',
                 'departments.location_id',
@@ -43,8 +44,7 @@ class DepartmentsController extends Controller
                 'departments.image',
                 'departments.tag_color',
                 'departments.notes',
-            ])->with('location')->with('manager')->with('company')->withCount('users as users_count');
-
+])->with(['location', 'manager', 'company', 'parent'])->withCount('users as users_count');
         // This invokes the Searchable model trait scopeTextSearch and will handle input by search or by advanced search filter
         if ($request->filled('filter') || $request->filled('search')) {
             $departments->TextSearch($request->input('filter') ? $request->input('filter') : $request->input('search'));
@@ -116,6 +116,7 @@ class DepartmentsController extends Controller
         $department = new Department;
         $department->fill($request->validated());
         $department->company_id = Company::getIdForCurrentUser($request->input('company_id'));
+        $department->parent_id = $request->filled('parent_id') ? $request->input('parent_id') : null;
         $department = $request->handleImages($department);
 
         $department->created_by = auth()->id();
@@ -161,6 +162,7 @@ class DepartmentsController extends Controller
         $department = Department::findOrFail($id);
         $department->fill($request->all());
         $department->company_id = Company::getIdForCurrentUser($request->input('company_id'));
+        $department->parent_id = $request->filled('parent_id') ? $request->input('parent_id') : null;
         $department = $request->handleImages($department);
 
         if ($department->save()) {
@@ -216,6 +218,12 @@ class DepartmentsController extends Controller
 
         if ($request->filled('search')) {
             $departments = $departments->where('name', 'LIKE', '%'.$request->input('search').'%');
+        }
+if ($request->filled('parent_id')) {
+            $departments = $departments->where('parent_id', $request->input('parent_id'));
+        }
+        if ($request->filled('main_only')) {
+            $departments = $departments->whereNull('parent_id');
         }
 
         $departments = $departments->orderBy('name', 'ASC')->paginate(50);
