@@ -48,7 +48,6 @@
                 </li>
                 @endif
 
-                <!-- زر الطلب الجماعي السحري: تم دمجه في الجهة اليمنى من شريط التبويبات -->
                 <li class="pull-right" style="padding: 6px 15px 0 0;">
                     <button id="bulkRequestBtn" class="btn btn-primary btn-sm" data-tooltip="true" title="Request all selected items">
                         <i class="fas fa-shopping-cart"></i> Request Selected
@@ -76,7 +75,6 @@
 
                                 <thead>
                                     <tr>
-                                        <!-- إضافة عمود الـ Checkbox -->
                                         <th data-checkbox="true" data-field="checkbox"></th>
                                         <th scope="col" class="col-md-1" data-field="image" data-formatter="imageFormatter" data-sortable="true">{{ trans('general.image') }}</th>
                                         <th scope="col" class="col-md-2" data-field="asset_tag" data-sortable="true" >{{ trans('general.asset_tag') }}</th>
@@ -108,7 +106,6 @@
                                         data-cookie-id-table="requestableAssets">
                                 <thead>
                                     <tr role="row">
-                                        <!-- إضافة أعمدة Checkbox و ID مخفي -->
                                         <th data-checkbox="true" data-field="checkbox"></th>
                                         <th data-field="id" data-visible="false">ID</th>
                                         <th scope="col" class="col-md-1" data-sortable="true">{{ trans('general.image') }}</th>
@@ -120,8 +117,8 @@
                                 <tbody>
                                     @foreach($models as $requestableModel)
                                         <tr>
-                                            <td></td> <!-- للـ Checkbox -->
-                                            <td>{{ $requestableModel->id }}</td> <!-- للـ ID -->
+                                            <td></td> 
+                                            <td>{{ $requestableModel->id }}</td> 
                                             <td>
                                                 @if (($requestableModel->image) && ($requestableModel->getImageUrl()))
                                                     <a href="{{ $requestableModel->getImageUrl() }}" data-toggle="lightbox" data-type="image">
@@ -164,7 +161,6 @@
                             <table class="table table-striped snipe-table" id="requestableAccessoriesTable" data-cookie-id-table="requestableAccessories">
                                 <thead>
                                     <tr role="row">
-                                        <!-- إضافة أعمدة Checkbox و ID مخفي -->
                                         <th data-checkbox="true" data-field="checkbox"></th>
                                         <th data-field="id" data-visible="false">ID</th>
                                         <th class="col-md-1" data-sortable="true">{{ trans('general.image') }}</th>
@@ -177,8 +173,8 @@
                                 <tbody>
                                     @foreach($accessories as $requestableAccessory)
                                         <tr>
-                                            <td></td> <!-- للـ Checkbox -->
-                                            <td>{{ $requestableAccessory->id }}</td> <!-- للـ ID -->
+                                            <td></td>
+                                            <td>{{ $requestableAccessory->id }}</td> 
                                             <td>
                                                 @if (($requestableAccessory->image) && ($requestableAccessory->getImageUrl()))
                                                     <a href="{{ $requestableAccessory->getImageUrl() }}" data-toggle="lightbox" data-type="image">
@@ -230,7 +226,6 @@
 
 <script nonce="{{ csrf_token() }}">
 $(function() {
-    // السكريبت السحري لمعالجة الطلبات الجماعية (AJAX) 
     $('#bulkRequestBtn').click(function(e) {
         e.preventDefault();
         
@@ -255,7 +250,6 @@ $(function() {
 
         if(!confirm('Are you sure you want to request ' + selections.length + ' items?')) return;
 
-        // تغيير شكل الزر لإظهار حالة التحميل
         var $btn = $(this);
         $btn.html('<i class="fas fa-spinner fa-spin"></i> Processing...').prop('disabled', true);
 
@@ -263,19 +257,14 @@ $(function() {
         var baseUrl = "{{ url('/') }}";
         var token = "{{ csrf_token() }}";
         
-        // بناء طابور الطلبات
         $.each(selections, function(index, row) {
             var url = "";
             
-            // [التصحيح النهائي بناءً على قائمة الروابط لديك]
             if (activeTab === '#assets') {
-                // المسار الجديد الخاص بالأجهزة
                 url = baseUrl + "/account/request-asset/" + row.id;
             } else if (activeTab === '#models') {
-                // مسار الموديلات
                 url = baseUrl + "/account/request/asset_model/" + row.id;
             } else if (activeTab === '#accessories') {
-                // مسار الإكسسوارات
                 url = baseUrl + "/account/request/accessory/" + row.id;
             }
 
@@ -284,12 +273,11 @@ $(function() {
                 type: 'POST',
                 data: {
                     _token: token,
-                    'request-quantity': 1 // الكمية الافتراضية
+                    'request-quantity': 1 
                 }
             }));
         });
 
-        // تنفيذ جميع الطلبات صامتاً دفعة واحدة، ثم تحديث الصفحة
         Promise.all(requests).then(function() {
             alert('Success! All selected items have been requested.');
             window.location.reload();
@@ -299,7 +287,6 @@ $(function() {
         });
     });
 
-    // إبقاء السكريبت القديم للأزرار الفردية
     $( "a[name='Request']").click(function(event) {
         quantity = $(this).closest('td').siblings().find('input').val();
         currentUrl = $(this).attr('href');

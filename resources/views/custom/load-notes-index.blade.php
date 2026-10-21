@@ -28,7 +28,6 @@
                     <tr>
                         <th data-sortable="true" data-field="ref_no">Ref No.</th>
                         <th data-sortable="true" data-field="date">Date</th>
-                        <!-- استخدام Formatter لتلوين النص دون تخريب الفرز -->
                         <th data-sortable="true" data-field="doc_type" data-formatter="typeBadgeFormatter">Type</th>
                         <th data-sortable="true" data-field="target">Target</th>
                         <th data-field="items">Items</th>
@@ -60,7 +59,6 @@
                             </td>
                             <td style="vertical-align: middle;">{{ $first->created_at }}</td>
                             
-                            <!-- نضع النص الصافي فقط هنا لكي ينجح الفرز 100% -->
                             <td style="vertical-align: middle;">{{ $typeLabel }}</td>
                             
                             <td style="vertical-align: middle;">
@@ -113,7 +111,6 @@
     @include ('partials.bootstrap-table', ['simple_view' => true])
 
     <script nonce="{{ csrf_token() }}">
-        // دالة التلوين الذكية (تُحوّل النص إلى شارة ملونة بعد أن يقرأه النظام)
         function typeBadgeFormatter(value, row, index) {
             var badgeClass = 'bg-gray';
             var cleanValue = $.trim(value);
@@ -132,14 +129,13 @@
         $(function() {
             var $table = $('#documentCenterTable');
             
-            // تشغيل الفرز عند تغيير خيار القائمة المنسدلة
             $('#filterType').on('change', function () {
                 var filterValue = $(this).val();
                 if (filterValue === "") {
-                    $table.bootstrapTable('filterBy', {}); // إظهار الكل
+                    $table.bootstrapTable('filterBy', {}); 
                 } else {
                     $table.bootstrapTable('filterBy', {
-                        doc_type: filterValue // مطابقة النص الصافي
+                        doc_type: filterValue 
                     });
                 }
             });

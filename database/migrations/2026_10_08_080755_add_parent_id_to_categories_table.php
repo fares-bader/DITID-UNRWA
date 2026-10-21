@@ -12,7 +12,6 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('categories', function (Blueprint $table) {
-            // إضافة الحقل الجديد ليكون فارغاً بشكل افتراضي (للفئات الأساسية)
             if (!Schema::hasColumn('categories', 'parent_id')) {
                 $table->unsignedInteger('parent_id')->nullable()->after('id');
             }

@@ -672,15 +672,13 @@
            </x-tabs>
         </x-form>
     </x-container>
-@stop   {{-- <--- هذا هو السطر الذي كان مفقوداً وأصلح مشكلة التصميم --}}
+@stop  
 
 @section('moar_scripts')
     <script>
-        // هذا المعترض الذكي (Prefilter) يلتقط طلب الـ API قبل ذهابه للسيرفر
-        // ويخبره: إذا كنت تبحث عن الأقسام الأساسية، أضف main_only=1 بصمت!
+
         $.ajaxPrefilter(function(options, originalOptions, jqXHR) {
             if (options.url && options.url.indexOf('/api/v1/departments/selectlist') !== -1) {
-                // التأكد أن هذا الطلب ليس للأقسام الفرعية
                 if (options.url.indexOf('parent_id') === -1 && (!options.data || options.data.indexOf('parent_id') === -1)) {
                     options.url += (options.url.indexOf('?') === -1 ? '?' : '&') + 'main_only=1';
                 }
@@ -688,12 +686,10 @@
         });
 
         $(document).ready(function() {
-            // تفعيل تصميم Select2 على القائمة المنسدلة
             $('#sub_department').select2();
 
             var existingSubDept = "{{ old('sub_department', $user->sub_department ?? '') }}";
 
-            // دالة لجلب الأقسام الفرعية من الـ API
             function fetchSubDepartments(parentId, selectedValue = '') {
                 var $subDept = $('#sub_department');
                 $subDept.empty().append('<option value="">Select Sub-Department...</option>');
@@ -703,7 +699,7 @@
                         url: "{{ route('api.departments.selectlist') }}",
                         dataType: 'json',
                         data: {
-                            parent_id: parentId // نرسل رقم القسم الرئيسي
+                            parent_id: parentId 
                         },
                         success: function(data) {
                             $.each(data.items, function(index, item) {
@@ -716,13 +712,11 @@
                 }
             }
 
-            // عند تغيير القسم الرئيسي يدوياً
             $('#department_select').on('change', function() {
                 var parentId = $(this).val();
                 fetchSubDepartments(parentId, ''); 
             });
 
-            // عند فتح صفحة (تعديل موظف)، نقوم بجلب الأقسام الفرعية للقسم المحدد مسبقاً
             if ($('#department_select').val()) {
                 fetchSubDepartments($('#department_select').val(), existingSubDept);
             }

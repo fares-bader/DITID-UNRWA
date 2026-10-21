@@ -32,7 +32,7 @@
                     label="Parent Category (Sub-Category of)"
                     name="parent_id"
                     input_div_class="col-md-7"
-                    help_text="Leave blank if this is a main category / اترك الحقل فارغاً إذا كانت هذه فئة أساسية"
+                    help_text="Leave blank if this is a main category"
                 >
                     <x-slot:input>
                         <select name="parent_id" class="form-control select2" aria-label="parent_id">

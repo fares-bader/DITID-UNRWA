@@ -24,7 +24,6 @@
                     @csrf
                     
                     <div id="dynamic-items-container">
-                        <!-- بداية سطر الطلب -->
                         <div class="item-row box box-solid" style="padding: 15px; border: 1px solid #ddd; background-color: #fdfdfd; margin-bottom: 15px;">
                             <button type="button" class="btn btn-danger btn-sm remove-item-btn pull-right" style="display:none;"><i class="fas fa-times"></i> Remove</button>
                             <h4 style="margin-top: 0; color: #555;"><i class="fas fa-box"></i> Item Request</h4>
@@ -35,7 +34,6 @@
                                 <div class="col-md-4">
                                     <div class="form-group">
                                         <label>Equipment Category <span class="text-danger">*</span></label>
-                                        <!-- تم مسح id واستخدام class للتعرف عليه -->
                                         <select class="form-control select2 category-select" name="category_id[]" required>
                                             <option value="">-- Select Category --</option>
                                             @foreach($categories as $category)
@@ -86,7 +84,6 @@
                                 </div>
                             </div>
                         </div>
-                        <!-- نهاية سطر الطلب -->
                     </div>
 
                     <div class="box-footer">
@@ -172,40 +169,32 @@
             showAvailabilityForRow($(this).closest('.item-row'));
         });
 
-        // زر إضافة سطر جديد (مصحح 100%)
         $('#add-item-btn').click(function() {
             var $firstRow = $('.item-row').first();
             
-            // استنساخ السطر
             var $clone = $firstRow.clone();
             
-            // تنظيف النسخة من بقايا مكتبة Select2 القديمة
             $clone.find('.select2-container').remove();
             $clone.find('select').removeClass('select2-hidden-accessible').removeAttr('data-select2-id tabindex aria-hidden');
             $clone.find('option').removeAttr('data-select2-id');
             
-            // إعادة ضبط القيم للسطر الجديد
             $clone.find('select').val('');
             $clone.find('input[type="number"]').val('1');
             $clone.find('input[type="text"]').val('');
             $clone.find('.availability_badge').hide();
             $clone.find('.remove-item-btn').show(); 
             
-            // إلحاق السطر الجديد بالشاشة
             $('#dynamic-items-container').append($clone);
             
-            // تفعيل مكتبة Select2 للسطر الجديد فقط
             $clone.find('.select2').select2();
             
             filterModelsForRow($clone);
         });
 
-        // حذف سطر
         $(document).on('click', '.remove-item-btn', function() {
             $(this).closest('.item-row').remove();
         });
 
-        // تشغيل الفلترة للسطر الأول عند التحميل
         filterModelsForRow($('.item-row').first());
     });
 </script>

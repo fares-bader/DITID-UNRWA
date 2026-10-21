@@ -481,7 +481,6 @@
         @include ('partials.bootstrap-table')
         <x-modals.maintenance-complete />
 
-        <!-- السكربت المخصص لإظهار زر طباعة Load Note -->
         <script>
             function loadNoteFormatter(value, row) {
                 if (row.action_type === 'checkout' || (row.action_type && row.action_type.includes('checkout'))) {

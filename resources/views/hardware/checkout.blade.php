@@ -109,7 +109,7 @@
                         <div class="col-md-7 col-md-offset-3">
                             <label class="form-control" style="cursor: pointer; background-color: #f9f9f9; border-left: 3px solid #0055A4;">
                                 <input type="checkbox" value="1" name="send_pdf_email" id="send_pdf_email" {{ old('send_pdf_email') ? 'checked' : '' }}>
-                                <strong>Send PDF Load Note via Email</strong> / إرسال المذكرة عبر البريد (للموظف و CC)
+                                <strong>Send PDF Load Note via Email</strong> 
                             </label>
                         </div>
                     </div>
@@ -122,7 +122,7 @@
                                 <input class="form-control" type="email" name="cc_email" id="cc_email" value="{{ old('cc_email') }}" placeholder="security@unrwa.org">
                             </div>
                             <p class="help-block" style="font-size: 11px; margin-top: 5px;">
-                                Optional: Works only if the checkbox above is checked / يعمل فقط في حال تفعيل خيار الإرسال أعلاه
+                                Optional: Works only if the checkbox above is checked
                             </p>
                         </div>
                     </div>

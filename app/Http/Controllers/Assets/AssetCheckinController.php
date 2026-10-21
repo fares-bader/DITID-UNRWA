@@ -213,25 +213,20 @@ class AssetCheckinController extends Controller
 
 if ($asset->save()) {
             
-            // ====== إضافة الأونروا: أتمتة تحويل حالة الجهاز من (جديد) إلى (مستعمل) ======
             $isConditionChanged = false;
-            // جلب الحقول المخصصة التي تحتوي على القيمة "New" وتغييرها إلى "Used"
             $customFields = \App\Models\CustomField::all();
             foreach ($customFields as $field) {
                 $columnName = $field->db_column;
-                // التأكد من أن العمود موجود في قاعدة البيانات للجهاز وأن قيمته الحالية هي New
                 if (isset($asset->{$columnName}) && strtolower(trim($asset->{$columnName})) === 'new') {
                     $asset->{$columnName} = 'Used';
                     $isConditionChanged = true;
                 }
             }
 
-            // إذا تم تغيير الحالة، نقوم بحفظ الجهاز مرة أخرى صمتاً وبدون إطلاق أحداث (لتفادي التكرار)
             if ($isConditionChanged) {
                 $asset::withoutEvents(function () use ($asset) {
                     $asset->save();
                 });
-                // أضفنا ملاحظة في الـ Log لتوثيق التغيير التلقائي
                 \Illuminate\Support\Facades\Log::info("UNRWA Automation: Asset {$asset->asset_tag} condition automatically updated from New to Used during Checkin.");
             }
             // ========================================================================

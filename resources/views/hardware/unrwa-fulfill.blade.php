@@ -4,7 +4,6 @@
 @section('content')
 <div class="row">
     <div class="col-md-12">
-        <!-- تفاصيل الطلب -->
         <div class="box box-solid box-primary">
             <div class="box-header with-border"><h3 class="box-title">Request Details</h3></div>
             <div class="box-body" style="font-size: 15px;">
@@ -22,7 +21,6 @@
             </div>
         </div>
 
-        <!-- الأجهزة المتاحة -->
         <div class="box box-default">
             <div class="box-header with-border">
                 <h3 class="box-title">Select Assets to Fulfill</h3>
@@ -75,7 +73,6 @@
     </div>
 </div>
 
-<!-- النافذة المنبثقة لبيانات المذكرة (Load Note Modal) -->
 <div class="modal fade" id="dispatchModal" tabindex="-1" role="dialog">
   <div class="modal-dialog" role="document">
     <div class="modal-content">
@@ -85,19 +82,19 @@
       </div>
       <div class="modal-body">
           <div class="form-group">
-              <label>Driver's Name (اسم السائق)</label>
+              <label>Driver's Name</label>
               <input type="text" class="form-control" id="driver_name" placeholder="Optional">
           </div>
           <div class="form-group">
-              <label>Wagon / Track No. (رقم السيارة)</label>
+              <label>Wagon / Track No.</label>
               <input type="text" class="form-control" id="vehicle_number" placeholder="Optional">
           </div>
           <div class="form-group">
-              <label>SAP PO Number (رقم الطلبية المجمع)</label>
+              <label>SAP PO Number</label>
               <input type="text" class="form-control" id="contract_po_number" placeholder="Optional">
           </div>
           <div class="form-group">
-              <label>Notes (ملاحظات الصرف)</label>
+              <label>Notes</label>
               <textarea class="form-control" id="note" rows="2" placeholder="Fulfilled request #{{ $request->id }}"></textarea>
           </div>
           <hr>
@@ -135,21 +132,17 @@
             var checkedCheckboxes = $('.asset-checkbox:checked');
             var checkedCount = checkedCheckboxes.length;
             
-            // منع تجاوز الكمية المطلوبة
             if (checkedCount > maxQty) {
                 $(this).prop('checked', false);
                 checkedCount--;
-                alert('You cannot select more than the requested quantity (' + maxQty + '). لا يمكنك تجاوز الكمية المطلوبة.');
+                alert('You cannot select more than the requested quantity (' + maxQty + ').');
             }
             
-            // تحديث العدادات
             $('#selectedCount').text(checkedCount);
             $('#btnCount').text(checkedCount);
 
-            // تفعيل/تعطيل زر الإكمال
             $('#openModalBtn').prop('disabled', checkedCount === 0);
             
-            // تحديث مصفوفة الأجهزة المحددة (id و status)
             selectedAssets = [];
             checkedCheckboxes.each(function() {
                 selectedAssets.push({
@@ -159,12 +152,10 @@
             });
         });
 
-        // فتح النافذة المنبثقة
         $('#openModalBtn').click(function() {
             $('#dispatchModal').modal('show');
         });
 
-        // زر التأكيد والصرف النهائي (AJAX)
         $('#confirmFulfillBtn').click(function() {
             var $btn = $(this);
             $btn.html('<i class="fas fa-spinner fa-spin"></i> Processing...').prop('disabled', true);
@@ -182,11 +173,9 @@
 
             var requests = [];
 
-            // إرسال طلب صرف (Checkout) لكل جهاز تم تحديده
             $.each(selectedAssets, function(index, asset) {
                 var url = baseUrl + "/hardware/" + asset.id + "/checkout";
                 
-                // إضافة المتغيرات التي ينتظرها الـ AssetCheckoutController الخاص بنا
                 var payload = {
                     _token: token,
                     assigned_user: userId,
@@ -196,9 +185,9 @@
                     vehicle_number: vehicle,
                     contract_po_number: po,
                     note: note,
-                    send_pdf_email: (index === 0) ? sendEmail : 0, // نرسل الإيميل مرة واحدة فقط مع أول جهاز
+                    send_pdf_email: (index === 0) ? sendEmail : 0,
                     cc_email: ccEmail,
-                    unrwa_request_id: requestId // لإغلاق الطلب تلقائياً
+                    unrwa_request_id: requestId 
                 };
 
                 requests.push($.ajax({
@@ -208,10 +197,9 @@
                 }));
             });
 
-            // الانتظار حتى تنتهي كل عمليات الصرف
             Promise.all(requests).then(function() {
                 alert('Success! Items dispatched and Load Note generated.');
-                window.location.href = "{{ route('unrwa.requests.manage') }}"; // العودة لشاشة إدارة الطلبات
+                window.location.href = "{{ route('unrwa.requests.manage') }}"; 
             }).catch(function() {
                 alert('Warning: Some items encountered errors during checkout. Returning to management screen.');
                 window.location.href = "{{ route('unrwa.requests.manage') }}";

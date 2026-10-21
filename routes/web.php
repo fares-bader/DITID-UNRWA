@@ -934,7 +934,7 @@ Route::get('hardware/{assetId}/load-note/latest', [\App\Http\Controllers\Assets\
 // ====== UNRWA Custom Asset Requests ======
 Route::get('unrwa-requests/manage', [\App\Http\Controllers\UnrwaRequestController::class, 'index'])->name('unrwa.requests.manage');
 Route::get('unrwa-requests/{id}/fulfill', [\App\Http\Controllers\UnrwaRequestController::class, 'fulfill'])->name('unrwa.requests.fulfill');
-Route::post('unrwa-requests/bulk-fulfill', [\App\Http\Controllers\UnrwaRequestController::class, 'bulkFulfill'])->name('unrwa.requests.bulk-fulfill'); // <--- السطر الجديد
+Route::post('unrwa-requests/bulk-fulfill', [\App\Http\Controllers\UnrwaRequestController::class, 'bulkFulfill'])->name('unrwa.requests.bulk-fulfill'); 
 Route::get('unrwa-requests', [\App\Http\Controllers\UnrwaRequestController::class, 'create'])->name('unrwa.requests.create');
 Route::post('unrwa-requests', [\App\Http\Controllers\UnrwaRequestController::class, 'store'])->name('unrwa.requests.store');
 Route::post('unrwa-requests/{id}/update', [\App\Http\Controllers\UnrwaRequestController::class, 'update'])->name('unrwa.requests.update');

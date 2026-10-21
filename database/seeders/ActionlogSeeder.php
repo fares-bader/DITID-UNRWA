@@ -29,7 +29,6 @@ class ActionlogSeeder extends Seeder
 
         $this->reportMemory('ActionlogSeeder start');
 
-        // تخفيض العدد إلى 20 عملية تسليم لموظفين ليتناسب مع البيانات التجريبية
         memory_reset_peak_usage();
         Actionlog::factory()
             ->count(20)
@@ -38,7 +37,6 @@ class ActionlogSeeder extends Seeder
         gc_collect_cycles();
         $this->reportMemory('ActionlogSeeder after 20 assetCheckoutToUser');
 
-        // تخفيض العدد إلى 10 عمليات تسليم لمواقع
         memory_reset_peak_usage();
         Actionlog::factory()
             ->count(10)
@@ -47,7 +45,6 @@ class ActionlogSeeder extends Seeder
         gc_collect_cycles();
         $this->reportMemory('ActionlogSeeder after 10 assetCheckoutToLocation');
 
-        // تخفيض العدد إلى 5 عمليات تسليم تراخيص
         memory_reset_peak_usage();
         Actionlog::factory()
             ->count(5)

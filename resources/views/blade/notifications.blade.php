@@ -24,7 +24,6 @@
             <button type="button" class="close" data-dismiss="alert" aria-label="{{ trans('general.close') }}"><span aria-hidden="true">&times;</span></button>
             {{ $message }}
             
-            <!-- زر طباعة Load Note المخصص -->
             @if(Session::has('load_note_url'))
                 <a href="{{ Session::get('load_note_url') }}" target="_blank" class="btn btn-sm btn-info" style="margin-left: 20px; color: #fff;">
                     <i class="fas fa-print"></i> Print Load Note

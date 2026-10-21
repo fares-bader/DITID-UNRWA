@@ -24,13 +24,11 @@ public function index()
         $categories = Category::where('category_type', 'asset')->orderBy('name', 'asc')->get();
         $models = AssetModel::orderBy('name', 'asc')->get();
 
-        // متغيرات التجميع البصري للطلبات המجمعة
         $groupColors = ['bg-purple', 'bg-orange', 'bg-teal', 'bg-maroon', 'bg-navy', 'bg-olive'];
         $timeGroups = [];
         $groupIndex = 0;
 
         foreach ($requests as $req) {
-            // 1. حساب الكميات المتاحة للطلبات المعلقة
             if ($req->status == 'Pending') {
                 $req->available_count = \App\Models\Asset::whereNull('assigned_to')
                     ->whereHas('status', function($q) {
@@ -44,9 +42,7 @@ public function index()
                 $req->available_count = '-';
             }
 
-            // 2. تجميع الطلبات المكتملة وإيجاد رقم المذكرة (Load Note ID)
             if ($req->status == 'Fulfilled' && $req->fulfilled_at && $req->fulfilled_asset_id) {
-                // تجميع حسب الدقيقة لضمان أن الطلبات التي صُرفت معاً تأخذ نفس الدفعة
                 $timeKey = \Carbon\Carbon::parse($req->fulfilled_at)->format('Y-m-d H:i');
                 
                 if (!isset($timeGroups[$timeKey])) {
@@ -58,7 +54,6 @@ public function index()
                 }
                 $req->batch_info = $timeGroups[$timeKey];
 
-                // البحث عن رقم سجل الصرف (Actionlog ID) لربطه بزر الطباعة
                 $log = \App\Models\Actionlog::where('item_id', $req->fulfilled_asset_id)
                     ->where('item_type', \App\Models\Asset::class)
                     ->where('action_type', 'checkout')
@@ -98,7 +93,6 @@ public function index()
         $user = Auth::user();
         $isManagerOrAdmin = $user->isSuperUser() || $user->hasAccess('admin');
 
-        // التحقق من أن البيانات المدخلة عبارة عن مصفوفات (لأننا سنرسل عدة سطور)
         $request->validate([
             'category_id'   => 'required|array',
             'category_id.*' => 'required|exists:categories,id',
@@ -110,7 +104,6 @@ public function index()
 
         $requestTier = $isManagerOrAdmin ? 'Manager/Admin' : 'User';
 
-        // المرور على جميع السطور وحفظها كطلبات منفصلة
         foreach ($request->category_id as $index => $cat_id) {
             $assetRequest = new UnrwaAssetRequest();
             $assetRequest->user_id = $user->id;
@@ -127,7 +120,7 @@ public function index()
             $assetRequest->save();
         }
 
-        return redirect()->back()->with('success', 'Your requests have been submitted successfully! تم إرسال طلباتك بنجاح.');
+        return redirect()->back()->with('success', 'Your requests have been submitted successfully!');
     }
 
     public function update(Request $request, $id)
@@ -192,20 +185,18 @@ public function index()
 
         $requestIds = $request->input('request_ids');
         if (!$requestIds || count($requestIds) == 0) {
-            return redirect()->back()->with('error', 'Please select at least one request. الرجاء تحديد طلب واحد على الأقل.');
+            return redirect()->back()->with('error', 'Please select at least one request.');
         }
 
         $requests = UnrwaAssetRequest::with(['user', 'category', 'assetModel'])->whereIn('id', $requestIds)->get();
 
-        // التأكد من أن جميع الطلبات المحددة تعود لنفس الموظف
         $userIds = $requests->pluck('user_id')->unique();
         if ($userIds->count() > 1) {
-            return redirect()->back()->with('error', 'You can only combine requests belonging to the SAME user. يمكنك دمج طلبات تعود لنفس الموظف فقط.');
+            return redirect()->back()->with('error', 'You can only combine requests belonging to the SAME user.');
         }
 
         $targetUser = $requests->first()->user;
 
-        // جلب الأجهزة المتاحة لكل طلب على حدة
         foreach ($requests as $req) {
             $req->availableAssets = \App\Models\Asset::with(['model', 'location', 'status'])
                 ->whereNull('assigned_to')

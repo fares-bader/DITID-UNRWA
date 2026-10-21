@@ -19,11 +19,9 @@
             </div>
             <div class="box-body">
                 
-                <!-- نموذج الصرف المجمع يغلف الجدول بالكامل -->
                 <form action="{{ route('unrwa.requests.bulk-fulfill') }}" method="POST" id="bulkFulfillForm">
                     @csrf
                     
-                    <!-- زر الصرف المجمع -->
                     <div style="margin-bottom: 15px;">
                         <button type="button" id="btnBulkFulfill" class="btn btn-success">
                             <i class="fas fa-check-double"></i> Fulfill Selected Requests (Unified Load Note)
@@ -42,7 +40,7 @@
                                     <th>Specific Model</th>
                                     <th>Req. Qty</th>
                                     <th>In Stock</th>
-                                    <th>Status / Batch</th> <!-- تعديل اسم العمود -->
+                                    <th>Status / Batch</th> 
                                     <th>Date Requested</th>
                                     <th>Notes</th>
                                     <th class="text-right">Actions</th>
@@ -147,10 +145,8 @@
                                         </td>
                                     </tr>
 
-                                    <!-- (محتوى الـ Edit Modal المخفي يبقى كما هو بدون تغيير) -->
                                     @if($req->status == 'Pending')
                                     <div class="modal fade" id="editModal{{ $req->id }}" tabindex="-1" role="dialog">
-                                        <!-- ... كود الـ Edit Modal كما هو ... -->
                                       <div class="modal-dialog" role="document">
                                         <div class="modal-content">
                                           <div class="modal-header bg-primary">
@@ -196,9 +192,9 @@
                             </tbody>
                         </table>
                     </div>
-                </form> <!-- نهاية نموذج الصرف المجمع -->
+                </form> 
                 
-                <!-- نموذج مخفي لعمليات الرفض والتعديل لتفادي تداخل الـ Forms -->
+                
                 <form id="actionForm" method="POST" style="display: none;">
                     @csrf
                     <input type="hidden" name="category_id" id="action_cat">
@@ -216,44 +212,39 @@
 @section('moar_scripts')
 <script nonce="{{ csrf_token() }}">
     $(document).ready(function() {
-        // تفعيل التلميحات (Tooltips)
         $('[data-toggle="tooltip"]').tooltip();
 
-        // 1. التحكم بالصرف المجمع (Bulk Fulfill)
         $(document).on('click', '#btnBulkFulfill', function(e) {
             e.preventDefault();
             var selected = $('.req-checkbox:checked');
             
             if(selected.length === 0) {
-                alert('Please select at least one pending request. يرجى اختيار طلب واحد على الأقل.');
+                alert('Please select at least one pending request.');
                 return;
             }
             
             var userId = null;
             var isValid = true;
             
-            // التحقق من أن كل الطلبات المحددة تعود لنفس الموظف
             selected.each(function() {
                 var currentUserId = $(this).data('user');
                 if(userId === null) {
                     userId = currentUserId;
                 } else if(userId !== currentUserId) {
-                    alert('Error: All selected requests must belong to the SAME user to generate a unified Load Note. يجب اختيار طلبات لنفس الموظف فقط لدمجها في مذكرة واحدة.');
+                    alert('Error: All selected requests must belong to the SAME user to generate a unified Load Note.');
                     isValid = false;
                     return false;
                 }
             });
 
             if(isValid) {
-                // تغيير شكل الزر ليدل على التحميل
                 $(this).html('<i class="fas fa-spinner fa-spin"></i> Processing...').prop('disabled', true);
                 $('#bulkFulfillForm').submit();
             }
         });
 
-        // 2. التحكم برفض الطلب (Cancel Request)
         $(document).on('click', '.cancel-btn', function() {
-            if(confirm('Are you sure you want to reject/cancel this request? هل أنت متأكد من رفض/إلغاء هذا الطلب؟')) {
+            if(confirm('Are you sure you want to reject/cancel this request?')) {
                 var url = $(this).data('url');
                 var $form = $('#actionForm');
                 $form.attr('action', url);
@@ -261,12 +252,10 @@
             }
         });
 
-        // 3. التحكم بتعديل الطلب (Edit Request)
         $(document).on('click', '.save-edit-btn', function() {
             var reqId = $(this).data('id');
             var url = $(this).data('url');
             
-            // سحب البيانات من النافذة المنبثقة
             $('#action_cat').val($('#edit_cat_' + reqId).val());
             $('#action_model').val($('#edit_model_' + reqId).val());
             $('#action_qty').val($('#edit_qty_' + reqId).val());

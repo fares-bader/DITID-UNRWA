@@ -17,7 +17,7 @@
         .page-container {
             page-break-after: always; 
             position: relative;
-            height: 275mm; /* الارتفاع الثابت لصفحة الـ A4 */
+            height: 275mm;
         }
         .page-container:last-child {
             page-break-after: auto; 
@@ -28,7 +28,6 @@
         .header-title { text-align: center; font-size: 22px; font-weight: bold; letter-spacing: 4px; vertical-align: top;}
         .small-text { font-size: 10px; color: #555; }
         
-        /* تنسيق الجداول التنظيمية العلوية والسفلية */
         .info-box { 
             border: 1px solid #bbb; 
             border-radius: 4px;
@@ -54,12 +53,10 @@
             font-size: 11px;
         }
 
-        /* تنسيق جدول المواد */
         .goods-table { margin-top: 10px; border: 1.5px solid #888; }
         .goods-table th, .goods-table td { border: 1px solid #888; padding: 5px; text-align: center; vertical-align: middle; font-size: 11px; }
         .goods-table th { font-weight: normal; background-color: #eee !important; color: #222; height: 25px;}
         
-        /* حاوية الفوتر الثابتة في أسفل الصفحة */
         .fixed-bottom-footer {
             position: absolute;
             bottom: 0;
@@ -70,11 +67,9 @@
 
         .arabic-text { direction: rtl; text-align: center; font-size: 11px; margin-bottom: 8px; }
         
-        /* تنسيق التواقيع */
         .signature-box { border: 1px solid #bbb; border-radius: 4px; margin-bottom: 8px; padding: 8px; }
         .sig-line { border-bottom: 1px solid #888; display: inline-block; width: 130px; margin: 0 5px; }
         
-        /* ترقيم الصفحات في الأسفل بالوسط */
         .page-footer {
             text-align: center;
             font-size: 11px;
@@ -142,7 +137,6 @@
             </tr>
         </table>
 
-        <!-- معلومات الشحن (من / إلى) -->
         <table style="margin-bottom: 2px;">
             <tr>
                 <td style="width: 49%; vertical-align: top;">
@@ -183,7 +177,6 @@
             </tr>
         </table>
 
-        <!-- معلومات المستلم النهائي -->
         <table class="info-box" style="width: 100%;">
             <tr>
                 <td class="info-label" style="width: 125px;">TO BE DELIVERED TO<br><span class="small-text">Consignee Details</span></td>
@@ -206,7 +199,6 @@
             </tr>
         </table>
 
-        <!-- معلومات الاعتماد والتوقيع (Approved & Issued By) -->
         <table class="info-box" style="width: 100%;">
             <tr>
                 @if($isTransfer && $checkinLog && $checkinLog->user)
@@ -313,29 +305,25 @@
                     </tr>
                 @endforeach
 
-                <!-- إكمال الأسطر الفارغة للحفاظ على التنسيق -->
                 @for($i = $rowCount; $i < 5; $i++)
                     <tr style="height: 65px;">
                         <td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>
                     </tr>
                 @endfor
 
-                <!-- سطر المجاميع -->
                 <tr style="background-color: #eee;">
-                    <td colspan="3" style="text-align: right; font-weight: bold; padding: 8px;">TOTAL / المجموع الإجمالي &nbsp;</td>
+                    <td colspan="3" style="text-align: right; font-weight: bold; padding: 8px;">TOTAL&nbsp;</td>
                     <td colspan="3" style="font-weight: bold; font-size: 14px; text-align: left; padding-left: 10px;">{{ count($allLogs) }} items</td>
                 </tr>
             </tbody>
         </table>
 
-        <!-- الفوتر الثابت في أسفل الصفحة (يحتوي على الرسالة والتواقيع ورقم الصفحة) -->
         <div class="fixed-bottom-footer">
             
             <div class="arabic-text">
                 ان الشاحنة ادناه محملة الى لاجئي فلسطين في لبنان - سوريا - المملكة الاردنية الهاشمية - لذلك نرجو السلطات المختصة تسهيل معاملاتها لتصل باقرب وقت ممكن
             </div>
 
-            <!-- التواقيع ومعلومات الناقل -->
             <table class="signature-box" style="width: 100%;">
                 <tr>
                     <td style="width: 32%; border-right: 1px solid #ddd; padding-right: 8px;">
@@ -354,7 +342,6 @@
                 </tr>
             </table>
 
-            <!-- إيصال الاستلام مع مكان للملاحظات -->
             <table class="signature-box" style="width: 100%; background-color: #fbfbfb;">
                 <tr>
                     <td style="width: 60%; font-size: 10px; padding-right: 10px; vertical-align: top;">

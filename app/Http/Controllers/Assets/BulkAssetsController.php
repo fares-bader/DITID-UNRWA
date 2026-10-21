@@ -821,8 +821,7 @@ if (! $errors) {
                     e($request->get('note')),
                 );
 
-                // ====== تحديث سجلات الـ Actionlog بحقول النقل المخصصة لجميع الأجهزة ======
-                $logIdsToPrint = []; // لجمع أرقام السجلات لطباعتها
+                $logIdsToPrint = []; 
 
                 foreach ($assets as $asset) {
                     $log = \App\Models\Actionlog::where('item_id', $asset->id)
@@ -837,14 +836,12 @@ if (! $errors) {
                         $log->contract_po_number = $request->input('contract_po_number');
                         $log->save();
 
-                        // حفظ رقم أول سجل لكي نستخدمه لتوليد الـ PDF المجمع
                         if (empty($logIdsToPrint)) {
                             $logIdsToPrint[] = $log->id;
                         }
                     }
                 }
 
-                // ====== إضافة الأونروا: أتمتة الإيميل للـ Bulk Checkout ======
                 if ($request->boolean('send_pdf_email') && !empty($logIdsToPrint)) {
                     try {
                         $ccEmail = $request->input('cc_email');
@@ -854,14 +851,12 @@ if (! $errors) {
                         $cleanCcEmail = !empty($ccEmail) ? trim($ccEmail) : null;
 
                         if ($toEmail || $cleanCcEmail) {
-                            // 1. جلب السجل الأساسي (أول جهاز تم صرفه في هذه العملية)
                             $firstLogId = $logIdsToPrint[0];
                             $logForPdf = \App\Models\Actionlog::with(['item', 'target.department', 'location'])
                                 ->where('id', $firstLogId)
                                 ->first();
 
                             if ($logForPdf) {
-                                // 2. جلب جميع السجلات التي تمت في نفس اللحظة (Bulk)
                                 $allLogsRaw = \App\Models\Actionlog::with(['item'])
                                     ->where('target_id', $logForPdf->target_id)
                                     ->where('target_type', $logForPdf->target_type)
@@ -878,14 +873,12 @@ if (! $errors) {
 
                                 $issuer = \App\Models\User::with('department')->find($logForPdf->created_by);
 
-                                // 3. توليد الـ PDF المجمع
                                 $pdf = app('dompdf.wrapper')->loadView('custom.load-note', [
                                     'log' => $logForPdf,
                                     'allLogs' => $allLogs,
                                     'issuer' => $issuer
                                 ]);
 
-                                // 4. إرسال إيميل واحد فقط يحتوي على جميع الأجهزة
                                 \Illuminate\Support\Facades\Mail::send([], [], function ($message) use ($toEmail, $cleanCcEmail, $pdf, $logForPdf, $allLogs) {
                                     $message->subject('UNRWA Bulk Load Note - ' . ($logForPdf->target->display_name ?? 'Dispatch'));
 

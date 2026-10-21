@@ -44,7 +44,6 @@
 <x-page-column class="col-md-3">
             <x-box class="side-box expanded">
                 
-                <!-- عرض القسم الأب (UNRWA Customization) -->
                 @if($department->parent)
                     <div style="padding: 15px; border-bottom: 1px solid #f4f4f4; text-align: center;">
                         <span class="text-muted"><i class="fa-solid fa-sitemap"></i> Parent Department:</span><br>

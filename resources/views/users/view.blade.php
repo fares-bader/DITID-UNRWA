@@ -605,13 +605,12 @@
                     </x-tabs.pane>
                     <!-- end history tab pane -->
 
-                    <!-- بداية قسم مذكرات التسليم (Load Notes) -->
 <x-tabs.pane name="loadnotes">
                         <div class="table-responsive" style="margin-top: 20px;">
                             <table class="table table-striped snipe-table">
                                 <thead>
                                     <tr>
-                                        <th>Document No.</th> <!-- عدلنا الاسم ليكون شاملاً -->
+                                        <th>Document No.</th> 
                                         <th>Date</th>
                                         <th>No. of Items</th>
                                         <th>Items</th>
@@ -635,7 +634,6 @@
                                     
                                     @forelse($loadNotes as $timestamp => $logs)
                                         @php
-                                            // الكود الذكي لمعرفة ما إذا كانت العملية نقل (Transfer) أم تسليم عادي
                                             $firstLog = $logs->first();
                                             $isTransfer = false;
                                             
@@ -653,7 +651,6 @@
                                         <tr>
                                             <td style="vertical-align: middle; font-weight: bold; color: #5fa4cc;">
                                                 ISD/{{ date('y', strtotime($timestamp)) }}/{{ $firstLog->id }}<br>
-                                                <!-- الشارة الملونة للتمييز البصري -->
                                                 @if($isTransfer)
                                                     <span class="badge bg-orange" style="font-size: 11px; margin-top: 5px;">Transfer Note</span>
                                                 @else
@@ -701,13 +698,12 @@
                             </table>
                         </div>
                     </x-tabs.pane>
-<!-- بداية قسم إشعارات الإرجاع (Return Receipts) -->
   <x-tabs.pane name="checkinreceipts">
                         <div class="table-responsive" style="margin-top: 20px;">
                             <table class="table table-striped snipe-table">
                                 <thead>
                                     <tr>
-                                        <th>Receipt No.</th> <!-- العمود الجديد -->
+                                        <th>Receipt No.</th>
                                         <th>Date</th>
                                         <th>No. of Items</th>
                                         <th>Returned Items</th>
@@ -772,7 +768,6 @@
                             </table>
                         </div>
                     </x-tabs.pane>>
-                    <!-- نهاية قسم إشعارات الإرجاع -->
                 </x-slot:tabpanes>
             </x-tabs>
         </x-page-column>

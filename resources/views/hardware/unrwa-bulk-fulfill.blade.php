@@ -4,14 +4,12 @@
 @section('content')
 <div class="row">
     <div class="col-md-12">
-        <!-- استخدمنا url المباشر لتفادي خطأ Route Not Found -->
         <form action="{{ url('hardware/bulkcheckout') }}" method="POST" id="fulfillForm">
             @csrf
             <input type="hidden" name="checkout_to_type" value="user">
             <input type="hidden" name="assigned_user" value="{{ $targetUser->id }}">
-            <input type="hidden" name="send_pdf_email" value="1"> <!-- إرسال الايميل اجباري -->
+            <input type="hidden" name="send_pdf_email" value="1"> 
             
-            <!-- تمرير معرفات الطلبات لإغلاقها لاحقاً -->
             @foreach($requests as $req)
                 <input type="hidden" name="unrwa_request_ids[]" value="{{ $req->id }}">
             @endforeach
@@ -22,7 +20,6 @@
                 </div>
             </div>
 
-            <!-- عرض قسم لكل طلب -->
             @foreach($requests as $req)
             <div class="box box-default">
                 <div class="box-header with-border">
@@ -65,7 +62,6 @@
             </div>
             @endforeach
 
-            <!-- زر فتح النافذة الختامية -->
             <div class="box box-solid">
                 <div class="box-body text-right">
                     <button type="button" class="btn bg-maroon btn-lg" id="openModalBtn" disabled>
@@ -74,7 +70,6 @@
                 </div>
             </div>
 
-            <!-- Modal المذكرة الختامية -->
             <div class="modal fade" id="dispatchModal" tabindex="-1" role="dialog">
               <div class="modal-dialog" role="document">
                 <div class="modal-content">
@@ -84,19 +79,19 @@
                   </div>
                   <div class="modal-body">
                       <div class="form-group">
-                          <label>Driver's Name (اسم السائق)</label>
+                          <label>Driver's Name</label>
                           <input type="text" class="form-control" name="driver_name" placeholder="Optional">
                       </div>
                       <div class="form-group">
-                          <label>Wagon / Track No. (رقم السيارة)</label>
+                          <label>Wagon / Track No.</label>
                           <input type="text" class="form-control" name="vehicle_number" placeholder="Optional">
                       </div>
                       <div class="form-group">
-                          <label>SAP PO Number (رقم الطلبية المجمع - إن وجد)</label>
+                          <label>SAP PO Number</label>
                           <input type="text" class="form-control" name="contract_po_number" placeholder="Optional">
                       </div>
                       <div class="form-group">
-                          <label>Unified Notes (ملاحظات الصرف)</label>
+                          <label>Unified Notes</label>
                           <textarea class="form-control" name="note" rows="2" placeholder="Fulfilled multiple requests..."></textarea>
                       </div>
                       <hr>
@@ -110,7 +105,6 @@
                   </div>
                   <div class="modal-footer">
                     <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
-                    <!-- التنفيذ المباشر للفورم -->
                     <button type="submit" class="btn btn-success" onclick="this.innerHTML='<i class=\'fas fa-spinner fa-spin\'></i> Processing...';"><i class="fas fa-check-double"></i> Confirm & Fulfill</button>
                   </div>
                 </div>
@@ -129,7 +123,6 @@
             var max = parseInt($('#maxQty_' + reqId).text());
             var checkedCount = $('.req-group-' + reqId + ':checked').length;
             
-            // منع تجاوز الكمية لكل صنف على حدة
             if (checkedCount > max) {
                 $(this).prop('checked', false);
                 checkedCount--;
@@ -138,7 +131,6 @@
             
             $('#selCount_' + reqId).text(checkedCount);
 
-            // تفعيل الزر إذا تم اختيار جهاز واحد على الأقل من كامل الشاشة
             var totalChecked = $('.asset-checkbox:checked').length;
             $('#openModalBtn').prop('disabled', totalChecked === 0);
         });

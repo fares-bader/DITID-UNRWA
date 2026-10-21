@@ -50,7 +50,7 @@ public $rules = [
         'require_acceptance' => 'boolean',
         'use_default_eula' => 'boolean',
         'category_type' => 'required|in:asset,accessory,consumable,component,license',
-        'parent_id' => 'nullable|integer|exists:categories,id', // <-- أضفنا هذا السطر
+        'parent_id' => 'nullable|integer|exists:categories,id',
     ];
 
     /**

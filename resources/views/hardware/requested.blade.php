@@ -20,7 +20,6 @@
                 <div class="row"><!-- .row -->
                     <div class="col-md-12"><!-- col-md-12 -->
 
-                        <!-- أزرار التحكم الجماعية (Toolbar) -->
                         <div id="toolbar">
                             <button id="bulkCheckoutRequestedBtn" class="btn btn-success btn-sm">
                                 <i class="fas fa-check-double"></i> Checkout Selected to User (Load Note)
@@ -39,7 +38,6 @@
                         }'>
                             <thead>
                                 <tr role="row">
-                                    <!-- حقول مخفية للـ Checkbox والبيانات البرمجية -->
                                     <th data-checkbox="true" data-field="checkbox"></th>
                                     <th data-field="item_id" data-visible="false">Item ID</th>
                                     <th data-field="item_type" data-visible="false">Item Type</th>
@@ -47,7 +45,6 @@
                                     <th data-field="user_name" data-visible="false">User Name</th>
                                     <th data-field="status_id" data-visible="false">Status ID</th>
 
-                                    <!-- الحقول الأساسية -->
                                     <th scope="col" class="col-md-1">{{ trans('general.image') }}</th>
                                     <th scope="col" class="col-md-2">{{ trans('general.name') }}</th>
                                     <th scope="col" class="col-md-2" data-sortable="true">{{ trans('admin/hardware/table.location') }}</th>
@@ -63,7 +60,6 @@
 
                                     @if ($request->requestable)
                                     <tr>
-                                        <!-- تعبئة البيانات البرمجية في الجدول -->
                                         <td></td>
                                         <td>{{ $request->requestable->id }}</td>
                                         <td>{{ $request->itemType() }}</td>
@@ -158,7 +154,6 @@
     </div> <!-- .col-md-12 -->
 </div> <!-- .row -->
 
-<!-- النافذة المنبثقة الذكية الخاصة بالأونروا (UNRWA Load Note Modal) -->
 <div class="modal fade" id="loadNoteModal" tabindex="-1" role="dialog">
   <div class="modal-dialog" role="document">
     <div class="modal-content">
@@ -173,15 +168,15 @@
         </div>
         <hr>
         <div class="form-group">
-            <label>Driver's Name (اسم السائق)</label>
+            <label>Driver's Name</label>
             <input type="text" class="form-control" id="bulk_driver_name" placeholder="Enter driver name">
         </div>
         <div class="form-group">
-            <label>Wagon / Track No. (رقم السيارة)</label>
+            <label>Wagon / Track No.</label>
             <input type="text" class="form-control" id="bulk_vehicle_number" placeholder="Enter vehicle number">
         </div>
         <div class="form-group">
-            <label>SAP PO Number (رقم الطلبية)</label>
+            <label>SAP PO Number</label>
             <input type="text" class="form-control" id="bulk_po_number" placeholder="Enter PO number">
         </div>
       </div>
@@ -206,7 +201,6 @@
 $(function() {
     var selectedItemsForCheckout = [];
 
-    // عند الضغط على زر الصرف الجماعي
     $('#bulkCheckoutRequestedBtn').click(function(e) {
         e.preventDefault();
         
@@ -221,7 +215,6 @@ $(function() {
         var firstUserName = selections[0].user_name;
         var isValid = true;
 
-        // الفحص الذكي: هل كل المواد لنفس الموظف؟
         $.each(selections, function(index, row) {
             if (row.user_id !== firstUserId) {
                 alert('Stop: You can only generate a Load Note for items requested by the SAME user. Please uncheck items belonging to other users.');
@@ -237,14 +230,12 @@ $(function() {
 
         if (!isValid) return;
 
-        // تجهيز وعرض النافذة المنبثقة للـ Load Note
         selectedItemsForCheckout = selections;
         $('#modal_item_count').text(selections.length);
         $('#modal_target_user').text(firstUserName);
         $('#loadNoteModal').modal('show');
     });
 
-    // عند تأكيد الصرف من داخل النافذة المنبثقة
     $('#confirmBulkCheckoutBtn').click(function() {
         var $btn = $(this);
         $btn.html('<i class="fas fa-spinner fa-spin"></i> Processing...').prop('disabled', true);
@@ -257,7 +248,6 @@ $(function() {
         var baseUrl = "{{ url('/') }}";
         var token = "{{ csrf_token() }}";
 
-        // إرسال الطلبات للنظام
         $.each(selectedItemsForCheckout, function(index, row) {
             var url = "";
             var payload = {
@@ -285,7 +275,6 @@ $(function() {
             }));
         });
 
-        // الانتظار حتى تنتهي كل عمليات الصرف
         Promise.all(requests).then(function() {
             alert('Success! All selected items have been checked out and the Load Note is ready in the Document Center.');
             window.location.reload();

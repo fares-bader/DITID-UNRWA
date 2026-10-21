@@ -154,7 +154,6 @@ if (! config('app.lock_passwords')) {
             $setting->smtp_port = $request->input('smtp_port');
             $setting->smtp_username = $request->input('smtp_username');
             
-            // تشفير كلمة المرور لحمايتها في قاعدة البيانات
             if ($request->filled('smtp_password')) {
                 $setting->smtp_password = Crypt::encrypt($request->input('smtp_password'));
             }
