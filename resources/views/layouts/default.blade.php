@@ -511,12 +511,20 @@
                                                 {{ trans('general.bulk_checkout') }}
                                             </a>
                                         </li>
-                                        <li{!! (request()->is('hardware/requested') ? ' class="active" aria-current="page"' : '') !!}>
+                                        <!--<li{!! (request()->is('hardware/requested') ? ' class="active" aria-current="page"' : '') !!}>
                                             <a href="{{ route('assets.requested') }}">
                                                 {{ trans('general.requested') }}</a>
-                                        </li>
+                                        </li>-->
                                     @endcan
-
+<!-- ====== UNRWA Customization: Admin Requests Manage ====== -->
+@if(Auth::user()->isSuperUser() || Auth::user()->hasAccess('admin'))
+<li {!! (Request::is('unrwa-requests/manage') ? ' class="active"' : '') !!}>
+    <a href="{{ route('unrwa.requests.manage') }}">
+        
+        <span>Manage Requests</span>
+    </a>
+</li>
+@endif
                                     @can('create', \App\Models\Asset::class)
                                         <li{!! (request()->query('status_type') == 'Deleted' ? ' class="active" aria-current="page"' : '') !!}>
                                             <a href="{{ url('hardware?status_type=Deleted') }}">
@@ -832,15 +840,22 @@
                             </li>
                         @endcan
 
-                        @can('viewRequestable', \App\Models\Asset::class)
-                            <li{!! (request()->is('account/requestable-assets') ? ' class="active" aria-current="page"' : '') !!}>
+                     <!--    @can('viewRequestable', \App\Models\Asset::class)
+                           <li{!! (request()->is('account/requestable-assets') ? ' class="active" aria-current="page"' : '') !!}>
                                 <a href="{{ route('requestable-assets') }}">
                                     <x-icon type="requestable" class="fa-fw" />
                                     <span>{{ trans('general.requestable_items') }}</span>
                                 </a>
-                            </li>
-                        @endcan
-
+                            </li> 
+                        @endcan -->
+<!-- ====== UNRWA Customization: User Request Portal ====== -->
+<li {!! (Request::is('unrwa-requests') ? ' class="active"' : '') !!}>
+    <a href="{{ route('unrwa.requests.create') }}">
+        <i class="fas fa-desktop fa-fw"></i>
+        <span>Request IT Equipment</span>
+    </a>
+</li>
+<!-- ====================================================== -->
 
                     </ul>
                 </section>

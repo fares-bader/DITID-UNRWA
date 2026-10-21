@@ -121,21 +121,31 @@
                             />
                         </x-slot:input>
                     </x-form.row>
-                    <!-- =================================================== -->
-                     <!-- CC Email (UNRWA Customization) -->
-<div class="form-group {{ $errors->has('cc_email') ? 'has-error' : '' }}">
-    <label for="cc_email" class="col-md-3 control-label">CC Email (Manager/Security)</label>
-    <div class="col-md-7 col-sm-12">
-        <div class="input-group">
-            <span class="input-group-addon"><i class="fas fa-envelope"></i></span>
-            <input class="form-control" type="email" name="cc_email" id="cc_email" value="{{ old('cc_email') }}" placeholder="security@unrwa.org">
-        </div>
-        <p class="help-block" style="font-size: 11px; margin-top: 5px;">
-            Optional: Send a PDF copy of the Load Note to this email / سيتم إرسال نسخة PDF من المذكرة لهذا البريد
-        </p>
-        {!! $errors->first('cc_email', '<span class="alert-msg" aria-hidden="true"><i class="fas fa-times" aria-hidden="true"></i> :message</span>') !!}
-    </div>
-</div>
+
+                    <!-- ====== UNRWA Customization: Bulk Email Automation ====== -->
+                    <div class="form-group">
+                        <div class="col-md-7 col-md-offset-3">
+                            <label class="form-control" style="cursor: pointer; background-color: #f9f9f9; border-left: 3px solid #0055A4;">
+                                <input type="checkbox" value="1" name="send_pdf_email" id="send_pdf_email" {{ old('send_pdf_email') ? 'checked' : '' }}>
+                                <strong>Send Bulk PDF Load Note via Email</strong>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-group {{ $errors->has('cc_email') ? 'has-error' : '' }}">
+                        <label for="cc_email" class="col-md-3 control-label">CC Email (Manager/Security)</label>
+                        <div class="col-md-7 col-sm-12">
+                            <div class="input-group">
+                                <span class="input-group-addon"><i class="fas fa-envelope"></i></span>
+                                <input class="form-control" type="email" name="cc_email" id="cc_email" value="{{ old('cc_email') }}" placeholder="security@unrwa.org">
+                            </div>
+                            <p class="help-block" style="font-size: 11px; margin-top: 5px;">
+                                Optional: Works only if the checkbox above is checked
+                            </p>
+                        </div>
+                    </div>
+                    <!-- ======================================================== -->
+
                     <x-form.row
                         :label="trans('general.notes')"
                         name="note"

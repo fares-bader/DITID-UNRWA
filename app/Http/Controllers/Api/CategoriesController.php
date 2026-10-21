@@ -64,6 +64,7 @@ class CategoriesController extends Controller
             'tag_color',
             'updated_at',
             'use_default_eula',
+            'categories.parent_id',
         ])
             ->with('adminuser')
             ->withCount('accessories as accessories_count', 'consumables as consumables_count', 'components as components_count', 'licenses as licenses_count', 'models as models_count');

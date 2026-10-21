@@ -45,12 +45,17 @@ class CategoriesTransformer
                 $category->item_count = 0;
         }
 
-        if ($category) {
+if ($category) {
             $array = [
                 'id' => (int) $category->id,
                 'name' => e($category->name),
                 'image' => ($category->image) ? Storage::disk('public')->url('categories/'.e($category->image)) : null,
                 'category_type' => Helper::categoryTypeList($category->category_type),
+                
+                // ====== UNRWA Customization: Parent Category ======
+                'parent' => ($category->parent) ? e($category->parent->name) : '-',
+                // ==================================================
+
                 'has_eula' => ($category->eula_text) ? true : false,
                 'use_default_eula' => ($category->use_default_eula == '1' ? true : false),
                 'eula' => ($category->getEula()),
@@ -71,7 +76,6 @@ class CategoriesTransformer
                 'created_at' => Helper::getFormattedDateObject($category->created_at, 'datetime'),
                 'updated_at' => Helper::getFormattedDateObject($category->updated_at, 'datetime'),
             ];
-
             $permissions_array['available_actions'] = [
                 'update' => Gate::allows('update', Category::class),
                 'delete' => $category->isDeletable(),

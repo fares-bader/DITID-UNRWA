@@ -44,12 +44,13 @@ class Category extends SnipeModel
     /**
      * Category validation rules
      */
-    public $rules = [
+public $rules = [
         'created_by' => 'numeric|nullable',
         'name' => 'required|min:1|max:255|two_column_unique_undeleted:category_type',
         'require_acceptance' => 'boolean',
         'use_default_eula' => 'boolean',
         'category_type' => 'required|in:asset,accessory,consumable,component,license',
+        'parent_id' => 'nullable|integer|exists:categories,id', // <-- أضفنا هذا السطر
     ];
 
     /**
@@ -79,6 +80,7 @@ class Category extends SnipeModel
         'use_default_eula',
         'tag_color',
         'notes',
+        'parent_id',
     ];
 
     use Searchable;
@@ -347,5 +349,17 @@ class Category extends SnipeModel
     public function scopeOrderByCreatedBy($query, $order)
     {
         return $query->leftJoin('users as admin_sort', 'categories.created_by', '=', 'admin_sort.id')->select('categories.*')->orderBy('admin_sort.first_name', $order)->orderBy('admin_sort.last_name', $order);
+    }
+    public function parent()
+    {
+        return $this->belongsTo(Category::class, 'parent_id');
+    }
+
+    /**
+     * Establishes the parent category -> sub-categories relationship
+     */
+    public function children()
+    {
+        return $this->hasMany(Category::class, 'parent_id');
     }
 }

@@ -57,6 +57,15 @@ class CategoryPresenter extends Presenter
                 'title' => trans('general.type'),
                 'visible' => true,
             ], [
+                // ====== UNRWA Customization: Parent Category Column ======
+                'field' => 'parent',
+                'scope' => 'col',
+                'searchable' => false,
+                'sortable' => false,
+                'title' => 'Parent Category',
+                'visible' => true,
+                // =========================================================
+            ],[
                 'field' => 'item_count',
                 'scope' => 'col',
                 'searchable' => false,

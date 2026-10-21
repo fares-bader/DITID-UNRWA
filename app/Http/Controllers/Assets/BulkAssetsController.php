@@ -822,7 +822,7 @@ if (! $errors) {
                 );
 
                 // ====== تحديث سجلات الـ Actionlog بحقول النقل المخصصة لجميع الأجهزة ======
-                $logIdsToPrint = []; // لجمع أرقام السجلات لطباعتها إذا لزم الأمر
+                $logIdsToPrint = []; // لجمع أرقام السجلات لطباعتها
 
                 foreach ($assets as $asset) {
                     $log = \App\Models\Actionlog::where('item_id', $asset->id)
@@ -837,19 +837,102 @@ if (! $errors) {
                         $log->contract_po_number = $request->input('contract_po_number');
                         $log->save();
 
-                        // حفظ رقم أول سجل لكي نستخدمه كرابط للطباعة (إذا أردنا طباعة رابط واحد يجمع الكل)
+                        // حفظ رقم أول سجل لكي نستخدمه لتوليد الـ PDF المجمع
                         if (empty($logIdsToPrint)) {
                             $logIdsToPrint[] = $log->id;
                         }
                     }
                 }
 
-                // Honor the redirect_option select from the form. Choosing
-                // 'bulk_checkout' bounces the operator right back to the
-                // bulk-checkout screen so they can keep scanning without
-                // navigating away — the workflow that Quick Scan Checkin
-                // uses for the checkin side. Any other value (default is
-                // 'index') falls back to the asset listing.
+                // ====== إضافة الأونروا: أتمتة الإيميل للـ Bulk Checkout ======
+                if ($request->boolean('send_pdf_email') && !empty($logIdsToPrint)) {
+                    try {
+                        $ccEmail = $request->input('cc_email');
+                        $targetUser = ($target instanceof User) ? $target : null;
+                        
+                        $toEmail = ($targetUser && !empty($targetUser->email)) ? trim($targetUser->email) : null;
+                        $cleanCcEmail = !empty($ccEmail) ? trim($ccEmail) : null;
+
+                        if ($toEmail || $cleanCcEmail) {
+                            // 1. جلب السجل الأساسي (أول جهاز تم صرفه في هذه العملية)
+                            $firstLogId = $logIdsToPrint[0];
+                            $logForPdf = \App\Models\Actionlog::with(['item', 'target.department', 'location'])
+                                ->where('id', $firstLogId)
+                                ->first();
+
+                            if ($logForPdf) {
+                                // 2. جلب جميع السجلات التي تمت في نفس اللحظة (Bulk)
+                                $allLogsRaw = \App\Models\Actionlog::with(['item'])
+                                    ->where('target_id', $logForPdf->target_id)
+                                    ->where('target_type', $logForPdf->target_type)
+                                    ->where('action_type', 'checkout')
+                                    ->where('created_at', $logForPdf->created_at)
+                                    ->get();
+
+                                $allLogs = $allLogsRaw->map(function ($singleLog) {
+                                    if ($singleLog->item_type === \App\Models\Asset::class && $singleLog->item) {
+                                        $singleLog->item->load(['model', 'company']);
+                                    }
+                                    return $singleLog;
+                                });
+
+                                $issuer = \App\Models\User::with('department')->find($logForPdf->created_by);
+
+                                // 3. توليد الـ PDF المجمع
+                                $pdf = app('dompdf.wrapper')->loadView('custom.load-note', [
+                                    'log' => $logForPdf,
+                                    'allLogs' => $allLogs,
+                                    'issuer' => $issuer
+                                ]);
+
+                                // 4. إرسال إيميل واحد فقط يحتوي على جميع الأجهزة
+                                \Illuminate\Support\Facades\Mail::send([], [], function ($message) use ($toEmail, $cleanCcEmail, $pdf, $logForPdf, $allLogs) {
+                                    $message->subject('UNRWA Bulk Load Note - ' . ($logForPdf->target->display_name ?? 'Dispatch'));
+
+                                    if (!empty($toEmail)) {
+                                        $message->to($toEmail);
+                                        if (!empty($cleanCcEmail) && strtolower($toEmail) !== strtolower($cleanCcEmail)) {
+                                            $message->cc($cleanCcEmail);
+                                        }
+                                    } elseif (!empty($cleanCcEmail)) {
+                                        $message->to($cleanCcEmail);
+                                    }
+
+                                    $message->html('
+                                        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                                            <h3 style="color: #0055A4;">UNRWA IT Asset Management</h3>
+                                            <p>Dear ' . ($logForPdf->target->display_name ?? 'Colleague') . ',</p>
+                                            <p>Please find attached the official <strong>Bulk Load Note</strong> for the recent hardware dispatch.</p>
+                                            <p>Total Items Checked Out: <strong style="color:#d9534f;">' . $allLogs->count() . '</strong></p>
+                                            <p dir="rtl" style="text-align: right;">Please find the attached Bulk Load Note for the recent hardware dispatch.</p>
+                                            <hr style="border: 1px solid #eee;">
+                                            <p style="font-size: 11px; color: #777;">This is an automated message generated by the IT Inventory System. Please do not reply.</p>
+                                        </div>
+                                    ');
+
+                                    $message->attachData($pdf->output(), 'UNRWA_Bulk_Load_Note_' . date('Y_m_d') . '.pdf', [
+                                        'mime' => 'application/pdf',
+                                    ]);
+                                });
+                            }
+                        }
+                    } catch (\Exception $e) {
+                        \Illuminate\Support\Facades\Log::error('UNRWA Bulk Email Error: ' . $e->getMessage());
+                    }
+                }
+                if ($request->filled('unrwa_request_ids')) {
+                    foreach($request->input('unrwa_request_ids') as $rId) {
+                        $unrwaReq = \App\Models\UnrwaAssetRequest::find($rId);
+                        if ($unrwaReq && $unrwaReq->status !== 'Fulfilled') {
+                            $unrwaReq->status = 'Fulfilled';
+                            $unrwaReq->fulfilled_asset_id = $assets->first()->id ?? null;
+                            $unrwaReq->fulfilled_at = now();
+                            $unrwaReq->save();
+                        }
+                    }
+                }
+                // ========================================================
+
                 $redirect = $request->input('redirect_option') === 'bulk_checkout'
                     ? route('hardware.bulkcheckout.show')
                     : route('hardware.index');

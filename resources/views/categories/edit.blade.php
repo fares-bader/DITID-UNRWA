@@ -27,7 +27,25 @@
                     :$item
                     name="name"
                 />
-
+<!-- ====== UNRWA Customization: Parent Category (Sub-Categories) ====== -->
+                <x-form.row
+                    label="Parent Category (Sub-Category of)"
+                    name="parent_id"
+                    input_div_class="col-md-7"
+                    help_text="Leave blank if this is a main category / اترك الحقل فارغاً إذا كانت هذه فئة أساسية"
+                >
+                    <x-slot:input>
+                        <select name="parent_id" class="form-control select2" aria-label="parent_id">
+                            <option value="">-- Main Category (No Parent) --</option>
+                            @foreach(\App\Models\Category::whereNull('parent_id')->orderBy('name', 'asc')->get() as $parentCat)
+                                <option value="{{ $parentCat->id }}" {{ old('parent_id', $item->parent_id) == $parentCat->id ? 'selected' : '' }}>
+                                    {{ $parentCat->name }} ({{ strtoupper($parentCat->category_type) }})
+                                </option>
+                            @endforeach
+                        </select>
+                    </x-slot:input>
+                </x-form.row>
+                <!-- =================================================================== -->
                 <x-form.row
                     :label="trans('general.type')"
                     name="category_type"
