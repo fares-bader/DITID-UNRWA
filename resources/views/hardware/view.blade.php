@@ -13,7 +13,6 @@
 {{-- Page content --}}
 @section('content')
 
-
     <x-container columns="2">
 
         @if (!$asset->model)
@@ -72,6 +71,26 @@
                     <x-tabs.model-files-tab :item="$asset->model" count="{{ $asset->model?->uploads()->count() }}"/>
                     <x-tabs.history-tab count="{{ $asset->history()->count() }}" :model="$asset"/>
                     <x-tabs.upload-tab :item="$asset"/>
+
+<!-- ====== UNRWA Custom Tabs ====== -->
+                    <li>
+                        <a href="#load-notes-tab" data-toggle="tab" data-tooltip="true" title="Load Notes">
+                            <i class="fas fa-file-export fa-lg text-info"></i>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#checkin-receipts-tab" data-toggle="tab" data-tooltip="true" title="Checkin Receipts">
+                            <i class="fas fa-file-import fa-lg text-success"></i>
+                        </a>
+                    </li>
+                    <!-- ====== UNRWA CMDB Tab ====== -->
+                    <li>
+                        <a href="#cmdb" data-toggle="tab" data-tooltip="true" title="CMDB Configurations">
+                            <i class="fas fa-project-diagram fa-lg text-purple"></i> 
+                            <span class="badge bg-purple">{{ $asset->cmdbObjects->count() ?? 0 }}</span>
+                        </a>
+                    </li>
+                    <!-- ============================ -->
                 </x-slot:tabnav>
 
                 <x-slot:tabpanes>
@@ -435,7 +454,154 @@
                     </x-tabs.pane>
                     <!-- end history tab pane -->
 
+                    <!-- ====== UNRWA CMDB Content Tab Pane ====== -->
+                    <x-tabs.pane name="cmdb">
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Type</th>
+                                        <th>Configuration Name</th>
+                                        <th>Attributes & Settings</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse($asset->cmdbObjects as $cmdb)
+                                        <tr>
+                                            <td><span class="label label-info"><i class="{{ $cmdb->type->icon }}"></i> {{ $cmdb->type->name }}</span></td>
+                                            <td style="font-weight: bold; font-size: 15px;">{{ $cmdb->name }}</td>
+                                            <td>
+                                                <table class="table table-bordered table-condensed" style="background-color: #f9f9f9; margin-bottom: 0;">
+                                                    @foreach($cmdb->attributes ?? [] as $key => $val)
+                                                        <tr>
+                                                            <td style="width: 30%;"><strong>{{ $key }}</strong></td>
+                                                            <td>{{ $val }}</td>
+                                                        </tr>
+                                                    @endforeach
+                                                </table>
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="3" class="text-center text-muted" style="padding: 30px;">
+                                                <i class="fas fa-info-circle fa-2x"></i><br><br>
+                                                No CMDB configurations linked to this asset yet.
+                                            </td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </x-tabs.pane>
+                    <!-- ========================================= -->
+@php
+                        $loadNotes = \App\Models\Actionlog::where('item_id', $asset->id)
+                                        ->where('item_type', \App\Models\Asset::class)
+                                        ->where('action_type', 'checkout')
+                                        ->orderBy('created_at', 'desc')->get();
+                                        
+                        $checkinReceipts = \App\Models\Actionlog::where('item_id', $asset->id)
+                                        ->where('item_type', \App\Models\Asset::class)
+                                        ->where('action_type', 'checkin from')
+                                        ->orderBy('created_at', 'desc')->get();
+                    @endphp
 
+                    <!-- ====== UNRWA Load Notes Tab Pane ====== -->
+                    <x-tabs.pane name="load-notes-tab">
+                        <div class="table-responsive">
+                            <table class="table table-striped snipe-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Admin</th>
+                                        <th>Issued To</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($loadNotes as $log)
+                                        <tr>
+                                            <td>{{ $log->created_at }}</td>
+                                            <td>{{ $log->user ? $log->user->display_name : 'System' }}</td>
+                                            <td>{{ $log->target ? $log->target->display_name : 'N/A' }}</td>
+                                            <td>
+                                                <a href="{{ route('hardware.loadnote', $log->id) }}" target="_blank" class="btn btn-sm btn-info"><i class="fas fa-print"></i> Print Load Note</a>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </x-tabs.pane>
+
+                    <!-- ====== UNRWA Checkin Receipts Tab Pane ====== -->
+                    <x-tabs.pane name="checkin-receipts-tab">
+                        <div class="table-responsive">
+                            <table class="table table-striped snipe-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Admin</th>
+                                        <th>Returned From</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($checkinReceipts as $log)
+                                        <tr>
+                                            <td>{{ $log->created_at }}</td>
+                                            <td>{{ $log->user ? $log->user->display_name : 'System' }}</td>
+                                            <td>{{ $log->target ? $log->target->display_name : 'N/A' }}</td>
+                                            <td>
+                                                <a href="{{ url('/hardware/checkin-receipt/'.$log->id) }}" target="_blank" class="btn btn-sm btn-success"><i class="fas fa-print"></i> Print Receipt</a>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </x-tabs.pane>
+
+                    <!-- ====== UNRWA CMDB Content Tab Pane ====== -->
+                    <x-tabs.pane name="cmdb">
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Type</th>
+                                        <th>Configuration Name</th>
+                                        <th>Attributes & Settings</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse($asset->cmdbObjects as $cmdb)
+                                        <tr>
+                                            <td><span class="label label-info"><i class="{{ $cmdb->type->icon }}"></i> {{ $cmdb->type->name }}</span></td>
+                                            <td style="font-weight: bold; font-size: 15px;">{{ $cmdb->name }}</td>
+                                            <td>
+                                                <table class="table table-bordered table-condensed" style="background-color: #f9f9f9; margin-bottom: 0;">
+                                                    @foreach($cmdb->attributes ?? [] as $key => $val)
+                                                        <tr>
+                                                            <td style="width: 30%;"><strong>{{ $key }}</strong></td>
+                                                            <td>{{ $val }}</td>
+                                                        </tr>
+                                                    @endforeach
+                                                </table>
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="3" class="text-center text-muted" style="padding: 30px;">
+                                                <i class="fas fa-info-circle fa-2x"></i><br><br>
+                                                No CMDB configurations linked to this asset yet.
+                                            </td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </x-tabs.pane>
+                    <!-- ========================================= -->
                 </x-slot:tabpanes>
 
             </x-tabs>

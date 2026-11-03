@@ -2273,4 +2273,10 @@ class Asset extends Depreciable
         return ($this->assigned_to && ! $this->assigned_type)
             || ($this->assigned_to && $this->assigned_type && ! $this->assignedTo);
     }
+    // ====== UNRWA Customization: CMDB Reverse Relationship ======
+    public function cmdbObjects()
+    {
+        return $this->belongsToMany(\App\Models\CmdbObject::class, 'asset_cmdb_object', 'asset_id', 'cmdb_object_id')
+                    ->withTimestamps();
+    }
 }

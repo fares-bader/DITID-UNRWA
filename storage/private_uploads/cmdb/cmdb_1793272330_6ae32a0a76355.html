@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام إدارة اتصالات المؤسسة - PBX Manager MVP</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Cairo', sans-serif; background-color: #f8fafc; }
+        
+        /* إعدادات التبديل بين الصفحات (SPA) */
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.4s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* التمرير المخصص */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        /* تنسيقات المخطط الشجري */
+        .tree-node { position: relative; z-index: 10; }
+        
+        /* تأثيرات منافذ العلبة (Krone Blocks) */
+        .port-pin { transition: transform 0.1s, box-shadow 0.1s; cursor: pointer; }
+        .port-pin:hover { transform: scale(1.15); box-shadow: 0 0 8px rgba(0,0,0,0.2); z-index: 10; }
+        .tooltip { visibility: hidden; opacity: 0; transition: opacity 0.2s; }
+        .port-pin:hover .tooltip { visibility: visible; opacity: 1; }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden text-slate-800">
+
+    <!-- ================= القائمة الجانبية ================= -->
+    <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col transition-all duration-300 z-20 shrink-0">
+        <div class="p-6 text-center border-b border-slate-800">
+            <div class="w-16 h-16 mx-auto bg-blue-600 rounded-xl flex items-center justify-center mb-3 shadow-lg shadow-blue-900/50">
+                <i class="fa-solid fa-network-wired text-3xl text-white"></i>
+            </div>
+            <h1 class="text-xl font-bold text-white tracking-wide">Telecom Manager</h1>
+            <p class="text-xs text-slate-500 mt-1">Enterprise MVP</p>
+        </div>
+
+        <nav class="flex-1 p-4 space-y-2 mt-4 overflow-y-auto">
+            <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn w-full flex items-center text-right px-4 py-3 bg-blue-600 text-white shadow-md rounded-lg transition-all">
+                <i class="fa-solid fa-chart-pie w-6"></i> <span>لوحة القيادة</span>
+            </button>
+            <button onclick="switchTab('boxes')" id="nav-boxes" class="nav-btn w-full flex items-center text-right px-4 py-3 hover:bg-slate-800 hover:text-white rounded-lg transition-all">
+                <i class="fa-solid fa-server w-6"></i> <span>علب التوزيع</span>
+            </button>
+            <button onclick="switchTab('topology')" id="nav-topology" class="nav-btn w-full flex items-center text-right px-4 py-3 hover:bg-slate-800 hover:text-white rounded-lg transition-all">
+                <i class="fa-solid fa-sitemap w-6"></i> <span>المخطط الشجري</span>
+            </button>
+            <button onclick="switchTab('directory')" id="nav-directory" class="nav-btn w-full flex items-center text-right px-4 py-3 hover:bg-slate-800 hover:text-white rounded-lg transition-all">
+                <i class="fa-solid fa-address-book w-6"></i> <span>دليل الخطوط</span>
+            </button>
+            <button onclick="switchTab('maintenance')" id="nav-maintenance" class="nav-btn w-full flex items-center text-right px-4 py-3 hover:bg-slate-800 hover:text-white rounded-lg transition-all">
+                <i class="fa-solid fa-screwdriver-wrench w-6"></i> <span>تذاكر الصيانة</span>
+                <span class="mr-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">3</span>
+            </button>
+        </nav>
+
+        <div class="p-4 border-t border-slate-800">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-white font-bold">FB</div>
+                <div>
+                    <p class="text-sm font-bold text-white">اسكندر</p>
+                    <p class="text-xs text-slate-500">مسؤول النظام (IT Admin)</p>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ================= المحتوى الرئيسي ================= -->
+    <main class="flex-1 flex flex-col h-full relative overflow-hidden bg-slate-50">
+        
+        <!-- الشريط العلوي -->
+        <header class="bg-white h-16 border-b border-slate-200 flex items-center justify-between px-6 z-10 shrink-0">
+            <h2 id="page-title" class="text-xl font-bold text-slate-700">لوحة القيادة - نظرة عامة</h2>
+            <div class="flex items-center gap-4">
+                <button class="w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 transition flex items-center justify-center relative">
+                    <i class="fa-solid fa-bell"></i>
+                    <span class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
+                </button>
+                <button class="w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 transition flex items-center justify-center">
+                    <i class="fa-solid fa-gear"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- منطقة الصفحات -->
+        <div class="flex-1 overflow-y-auto p-6 relative">
+
+            <!-- 1. لوحة القيادة -->
+            <div id="tab-dashboard" class="tab-content active space-y-6">
+                <!-- الإحصائيات -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xl"><i class="fa-solid fa-phone"></i></div>
+                        <div><p class="text-slate-500 text-sm">إجمالي الخطوط</p><h3 class="text-2xl font-bold">3,000</h3></div>
+                    </div>
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-xl"><i class="fa-solid fa-plug-circle-check"></i></div>
+                        <div><p class="text-slate-500 text-sm">الخطوط الموصولة</p><h3 class="text-2xl font-bold">2,645</h3></div>
+                    </div>
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-xl"><i class="fa-solid fa-plug-circle-xmark"></i></div>
+                        <div><p class="text-slate-500 text-sm">منافذ شاغرة</p><h3 class="text-2xl font-bold">355</h3></div>
+                    </div>
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-xl"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                        <div><p class="text-slate-500 text-sm">أعطال نشطة</p><h3 class="text-2xl font-bold">12</h3></div>
+                    </div>
+                </div>
+
+                <!-- تتبع مسار الخط السريع -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                    <div class="p-5 border-b border-slate-100 bg-slate-50 flex flex-wrap gap-4 items-center justify-between">
+                        <h3 class="font-bold text-slate-700"><i class="fa-solid fa-route text-blue-500 ml-2"></i>الفحص السريع ومسار الخط</h3>
+                        <div class="flex gap-2 w-full max-w-sm">
+                            <input type="text" id="quickSearch" placeholder="أدخل الرقم الداخلي (مثال: 1204)" class="flex-1 px-4 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                            <button onclick="traceLine()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"><i class="fa-solid fa-magnifying-glass"></i></button>
+                        </div>
+                    </div>
+                    
+                    <div id="traceResult" class="p-8 hidden">
+                        <div class="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
+                            <h4 class="font-bold text-slate-700">نتيجة البحث للرقم: <span id="searchExtOutput" class="text-blue-600"></span></h4>
+                            <span class="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold"><i class="fa-solid fa-circle-check ml-1"></i>الخط يعمل</span>
+                        </div>
+                        <div class="flex flex-col md:flex-row items-center justify-between space-y-6 md:space-y-0 text-center relative before:hidden md:before:block before:absolute before:h-1 before:bg-slate-200 before:w-full before:top-10 before:-z-10 px-8">
+                            <!-- المقسم -->
+                            <div class="bg-white">
+                                <div class="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center border-4 border-slate-200 mx-auto shadow-sm"><i class="fa-solid fa-server text-2xl text-slate-500"></i></div>
+                                <h4 class="font-bold mt-3 text-sm">المقسم (PBX)</h4>
+                                <span class="text-xs bg-slate-100 px-2 py-1 rounded text-slate-600 mt-1 inline-block">بوابة 12</span>
+                            </div>
+                            <!-- العلبة الرئيسية -->
+                            <div class="bg-white">
+                                <div class="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center border-4 border-blue-200 mx-auto shadow-sm"><i class="fa-solid fa-box-open text-2xl text-blue-500"></i></div>
+                                <h4 class="font-bold mt-3 text-sm">علبة رئيسية MDF-A</h4>
+                                <span class="text-xs bg-blue-50 px-2 py-1 rounded text-blue-600 mt-1 inline-block">زوج كبل: 402</span>
+                            </div>
+                            <!-- العلبة الفرعية -->
+                            <div class="bg-white">
+                                <div class="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center border-4 border-indigo-200 mx-auto shadow-sm"><i class="fa-solid fa-boxes-stacked text-2xl text-indigo-500"></i></div>
+                                <h4 class="font-bold mt-3 text-sm">علبة الطابق 2</h4>
+                                <span class="text-xs bg-indigo-50 px-2 py-1 rounded text-indigo-600 mt-1 inline-block">نقطة: 15</span>
+                            </div>
+                            <!-- الموظف -->
+                            <div class="bg-white">
+                                <div class="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center border-4 border-emerald-200 mx-auto shadow-sm"><i class="fa-solid fa-user-tie text-2xl text-emerald-600"></i></div>
+                                <h4 class="font-bold mt-3 text-sm">مكتب Service Desk</h4>
+                                <span class="text-xs bg-emerald-50 px-2 py-1 rounded text-emerald-700 mt-1 inline-block">قسم IT</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="traceEmpty" class="p-12 text-center text-slate-400">
+                        <i class="fa-solid fa-magnifying-glass-chart text-5xl mb-4 opacity-50"></i>
+                        <p>أدخل الرقم الداخلي في الأعلى لتتبع مسار الخط من المقسم حتى مكتب الموظف.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. علب التوزيع ومخطط الكرونات -->
+            <div id="tab-boxes" class="tab-content space-y-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-bold text-slate-700">مراقبة سعة البنية التحتية</h3>
+                    <button class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 shadow-sm"><i class="fa-solid fa-plus ml-2"></i>إضافة علبة</button>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    <!-- علبة MDF-A -->
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 hover:shadow-md transition">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h4 class="font-bold text-lg">MDF-A (الرئيسية)</h4>
+                                <p class="text-xs text-slate-500"><i class="fa-solid fa-location-dot ml-1"></i>المبنى الإداري - قبو السيرفرات</p>
+                            </div>
+                        </div>
+                        <div class="mb-2 flex justify-between text-sm">
+                            <span class="text-slate-600">السعة المستخدمة</span><span class="font-bold text-slate-800">850 / 1000 زوج</span>
+                        </div>
+                        <div class="w-full bg-slate-100 rounded-full h-2.5 mb-4 overflow-hidden">
+                            <div class="bg-amber-500 h-2.5 rounded-full" style="width: 85%"></div>
+                        </div>
+                        <button onclick="openBoxModal('MDF-A (الرئيسية)', 85)" class="w-full bg-blue-50 text-blue-600 border border-blue-200 font-semibold py-2 rounded hover:bg-blue-100 transition">
+                            <i class="fa-solid fa-border-all ml-1"></i> عرض مخطط العلبة (الكرونات)
+                        </button>
+                    </div>
+
+                    <!-- علبة Sub-DB-3 -->
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 hover:shadow-md transition">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h4 class="font-bold text-lg">Sub-DB-3</h4>
+                                <p class="text-xs text-slate-500"><i class="fa-solid fa-location-dot ml-1"></i>المبنى الإداري - الطابق 3</p>
+                            </div>
+                        </div>
+                        <div class="mb-2 flex justify-between text-sm">
+                            <span class="text-slate-600">السعة المستخدمة</span><span class="font-bold text-slate-800">195 / 200 زوج</span>
+                        </div>
+                        <div class="w-full bg-slate-100 rounded-full h-2.5 mb-4 overflow-hidden">
+                            <div class="bg-red-500 h-2.5 rounded-full" style="width: 97.5%"></div>
+                        </div>
+                        <button onclick="openBoxModal('Sub-DB-3', 97)" class="w-full bg-blue-50 text-blue-600 border border-blue-200 font-semibold py-2 rounded hover:bg-blue-100 transition">
+                            <i class="fa-solid fa-border-all ml-1"></i> عرض مخطط العلبة (الكرونات)
+                        </button>
+                    </div>
+
+                    <!-- علبة Sub-DB-4 -->
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 hover:shadow-md transition">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h4 class="font-bold text-lg">Sub-DB-4</h4>
+                                <p class="text-xs text-slate-500"><i class="fa-solid fa-location-dot ml-1"></i>مبنى الملحق - الطابق الأرضي</p>
+                            </div>
+                        </div>
+                        <div class="mb-2 flex justify-between text-sm">
+                            <span class="text-slate-600">السعة المستخدمة</span><span class="font-bold text-slate-800">45 / 300 زوج</span>
+                        </div>
+                        <div class="w-full bg-slate-100 rounded-full h-2.5 mb-4 overflow-hidden">
+                            <div class="bg-emerald-500 h-2.5 rounded-full" style="width: 15%"></div>
+                        </div>
+                        <button onclick="openBoxModal('Sub-DB-4', 15)" class="w-full bg-blue-50 text-blue-600 border border-blue-200 font-semibold py-2 rounded hover:bg-blue-100 transition">
+                            <i class="fa-solid fa-border-all ml-1"></i> عرض مخطط العلبة (الكرونات)
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. المخطط الشجري -->
+            <div id="tab-topology" class="tab-content h-full">
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 min-h-full overflow-auto">
+                    <div class="flex justify-between items-center mb-8 border-b pb-4">
+                        <h3 class="text-lg font-bold text-slate-700">الشبكة الهرمية للاتصالات</h3>
+                        <div class="flex gap-4 text-sm font-semibold">
+                            <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-emerald-500"></span> نشط</span>
+                            <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-red-500"></span> به عطل</span>
+                        </div>
+                    </div>
+                    <div class="flex flex-col items-center justify-center mt-4 pb-20 w-full min-w-[800px]">
+                        <!-- المقسم الرئيسي -->
+                        <div class="tree-node bg-slate-800 text-white p-4 rounded-xl shadow-lg border-b-4 border-blue-500 w-48 text-center">
+                            <i class="fa-solid fa-server text-3xl mb-2 text-blue-400"></i>
+                            <h4 class="font-bold">المقسم الرئيسي</h4>
+                        </div>
+                        <!-- جذع الشجرة -->
+                        <div class="w-1 h-12 bg-slate-300"></div>
+                        <div class="w-[600px] h-1 bg-slate-300 relative">
+                            <div class="absolute right-0 top-0 w-1 h-8 bg-slate-300"></div>
+                            <div class="absolute left-1/2 top-0 w-1 h-8 bg-slate-300 -translate-x-1/2"></div>
+                            <div class="absolute left-0 top-0 w-1 h-8 bg-slate-300"></div>
+                        </div>
+                        <!-- مستوى العلب الرئيسية (MDFs) -->
+                        <div class="flex justify-between w-[640px] pt-8">
+                            <div class="flex flex-col items-center">
+                                <div class="tree-node bg-blue-50 border border-blue-200 p-3 rounded-lg text-center w-40 z-10"><i class="fa-solid fa-box-open text-2xl text-blue-500 mb-1"></i><h5 class="font-bold text-sm">MDF-A</h5></div>
+                                <div class="w-1 h-8 bg-slate-300"></div>
+                                <div class="w-48 h-1 bg-slate-300 relative"><div class="absolute right-0 top-0 w-1 h-6 bg-slate-300"></div><div class="absolute left-0 top-0 w-1 h-6 bg-slate-300"></div></div>
+                                <div class="flex justify-between w-52 pt-6">
+                                    <div class="tree-node bg-white border-2 border-emerald-400 p-2 rounded-lg text-center w-20"><i class="fa-solid fa-boxes-stacked text-emerald-500"></i><div class="text-[10px] font-bold mt-1">DB-1</div></div>
+                                    <div class="tree-node bg-white border-2 border-emerald-400 p-2 rounded-lg text-center w-20"><i class="fa-solid fa-boxes-stacked text-emerald-500"></i><div class="text-[10px] font-bold mt-1">DB-2</div></div>
+                                </div>
+                            </div>
+                            <div class="flex flex-col items-center">
+                                <div class="tree-node bg-blue-50 border border-blue-200 p-3 rounded-lg text-center w-40 z-10"><i class="fa-solid fa-box-open text-2xl text-blue-500 mb-1"></i><h5 class="font-bold text-sm">MDF-B</h5></div>
+                                <div class="w-1 h-8 bg-slate-300"></div>
+                                <div class="w-1 h-6 bg-slate-300"></div>
+                                <div class="pt-0">
+                                    <div class="tree-node bg-white border-2 border-red-400 p-2 rounded-lg text-center w-24 relative"><div class="absolute -top-2 -right-2 w-4 h-4 bg-red-500 rounded-full animate-pulse border-2 border-white"></div><i class="fa-solid fa-boxes-stacked text-red-500"></i><div class="text-[10px] font-bold mt-1">DB-3 (عطل)</div></div>
+                                </div>
+                            </div>
+                            <div class="flex flex-col items-center">
+                                <div class="tree-node bg-blue-50 border border-blue-200 p-3 rounded-lg text-center w-40 z-10"><i class="fa-solid fa-box-open text-2xl text-blue-500 mb-1"></i><h5 class="font-bold text-sm">MDF-C</h5></div>
+                                <div class="w-1 h-8 bg-slate-300"></div>
+                                <div class="w-32 h-1 bg-slate-300 relative"><div class="absolute right-0 top-0 w-1 h-6 bg-slate-300"></div><div class="absolute left-0 top-0 w-1 h-6 bg-slate-300"></div></div>
+                                <div class="flex justify-between w-36 pt-6">
+                                    <div class="tree-node bg-white border-2 border-emerald-400 p-2 rounded-lg text-center w-16"><i class="fa-solid fa-boxes-stacked text-emerald-500"></i><div class="text-[10px] font-bold mt-1">DB-4</div></div>
+                                    <div class="tree-node bg-white border-2 border-emerald-400 p-2 rounded-lg text-center w-16"><i class="fa-solid fa-boxes-stacked text-emerald-500"></i><div class="text-[10px] font-bold mt-1">DB-5</div></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. دليل الخطوط (الجدول) -->
+            <div id="tab-directory" class="tab-content h-full flex flex-col">
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 flex-1 flex flex-col overflow-hidden">
+                    <div class="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+                        <div class="relative w-72">
+                            <input type="text" placeholder="بحث بالاسم، الإضافة..." class="w-full pl-4 pr-10 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                            <i class="fa-solid fa-filter absolute right-3 top-2.5 text-slate-400"></i>
+                        </div>
+                        <button class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-lg text-sm border border-slate-200 transition"><i class="fa-solid fa-download ml-2"></i>تصدير Excel</button>
+                    </div>
+                    <div class="overflow-x-auto flex-1">
+                        <table class="w-full text-sm text-right">
+                            <thead class="text-xs text-slate-500 bg-slate-50 border-b border-slate-200">
+                                <tr>
+                                    <th class="px-6 py-4 font-bold">الرقم الداخلي</th>
+                                    <th class="px-6 py-4 font-bold">الموظف / الموقع</th>
+                                    <th class="px-6 py-4 font-bold">القسم</th>
+                                    <th class="px-6 py-4 font-bold">المسار (بوابة -> MDF -> فرعية)</th>
+                                    <th class="px-6 py-4 font-bold">الحالة</th>
+                                    <th class="px-6 py-4 font-bold text-center">إجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                <tr class="hover:bg-slate-50 transition">
+                                    <td class="px-6 py-4 font-bold text-blue-600">1204</td>
+                                    <td class="px-6 py-4">مكتب Service Desk<br><span class="text-xs text-slate-400">المبنى الرئيسي</span></td>
+                                    <td class="px-6 py-4">IT</td>
+                                    <td class="px-6 py-4 font-mono text-xs text-slate-600">P12 ➜ MDF-A(402) ➜ DB-2(15)</td>
+                                    <td class="px-6 py-4"><span class="bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full text-xs font-bold">نشط</span></td>
+                                    <td class="px-6 py-4 text-center"><button class="text-slate-400 hover:text-blue-500 mx-1"><i class="fa-solid fa-pen-to-square"></i></button></td>
+                                </tr>
+                                <tr class="hover:bg-slate-50 transition">
+                                    <td class="px-6 py-4 font-bold text-blue-600">3015</td>
+                                    <td class="px-6 py-4">قسم التوريدات (ERP)<br><span class="text-xs text-slate-400">مبنى الملحق</span></td>
+                                    <td class="px-6 py-4">المشتريات</td>
+                                    <td class="px-6 py-4 font-mono text-xs text-slate-600">P45 ➜ MDF-B(11) ➜ DB-4(02)</td>
+                                    <td class="px-6 py-4"><span class="bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full text-xs font-bold">نشط</span></td>
+                                    <td class="px-6 py-4 text-center"><button class="text-slate-400 hover:text-blue-500 mx-1"><i class="fa-solid fa-pen-to-square"></i></button></td>
+                                </tr>
+                                <tr class="hover:bg-slate-50 transition bg-red-50/30">
+                                    <td class="px-6 py-4 font-bold text-blue-600">1108</td>
+                                    <td class="px-6 py-4">قاعة التدريب<br><span class="text-xs text-slate-400">مركز التدريب الإقليمي</span></td>
+                                    <td class="px-6 py-4">التدريب</td>
+                                    <td class="px-6 py-4 font-mono text-xs text-slate-600">P88 ➜ MDF-C(215) ➜ DB-1(44)</td>
+                                    <td class="px-6 py-4"><span class="bg-red-100 text-red-700 px-2.5 py-1 rounded-full text-xs font-bold">مقطوع</span></td>
+                                    <td class="px-6 py-4 text-center"><button class="text-slate-400 hover:text-blue-500 mx-1"><i class="fa-solid fa-pen-to-square"></i></button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. تذاكر الصيانة (Kanban) -->
+            <div id="tab-maintenance" class="tab-content space-y-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-bold text-slate-700">إدارة الأعطال وعمليات النقل</h3>
+                    <button class="bg-red-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-red-600 shadow-sm"><i class="fa-solid fa-plus ml-2"></i>فتح تذكرة عطل</button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+                    <!-- عمود جديد -->
+                    <div class="bg-slate-200/50 rounded-xl p-4 min-h-[400px]">
+                        <h4 class="font-bold text-slate-700 mb-4 flex justify-between">جديد <span class="bg-red-500 text-white text-xs px-2 rounded-full">2</span></h4>
+                        <div class="bg-white p-4 rounded-lg shadow-sm border border-slate-200 mb-3 hover:border-blue-300 cursor-pointer">
+                            <span class="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded">تشويش</span>
+                            <h5 class="font-bold text-sm mt-2">الرقم 1108 (قاعة التدريب)</h5>
+                            <p class="text-xs text-slate-500 mt-1">يوجد تشويش عالي ولا يمكن إجراء مكالمات خارجية. يرجى فحص العلبة DB-1.</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-lg shadow-sm border border-slate-200 hover:border-blue-300 cursor-pointer">
+                            <span class="text-xs bg-amber-100 text-amber-600 px-2 py-0.5 rounded">نقل خط</span>
+                            <h5 class="font-bold text-sm mt-2">نقل الرقم 3015</h5>
+                            <p class="text-xs text-slate-500 mt-1">نقل مكتب الموظف إلى الطابق الثاني، تعديل الربط على العلبة DB-4.</p>
+                        </div>
+                    </div>
+                    <!-- عمود قيد المعالجة -->
+                    <div class="bg-slate-200/50 rounded-xl p-4 min-h-[400px]">
+                        <h4 class="font-bold text-slate-700 mb-4 flex justify-between">قيد الصيانة <span class="bg-amber-500 text-white text-xs px-2 rounded-full">1</span></h4>
+                        <div class="bg-white p-4 rounded-lg shadow-sm border-l-4 border-l-amber-500 border border-slate-200">
+                            <h5 class="font-bold text-sm mb-1">انقطاع الكبل الرئيسي</h5>
+                            <p class="text-xs text-slate-500 mb-3">الكبل المغذي للعلبة Sub-DB-3 معطوب. جاري تبديل الأزواج.</p>
+                            <div class="w-full bg-slate-100 rounded-full h-1.5 mb-1"><div class="bg-amber-400 h-1.5 rounded-full" style="width: 60%"></div></div>
+                            <span class="text-[10px] text-slate-400">مرحلة اختبار الحرارة...</span>
+                        </div>
+                    </div>
+                    <!-- عمود منجز -->
+                    <div class="bg-slate-200/50 rounded-xl p-4 min-h-[400px]">
+                        <h4 class="font-bold text-slate-700 mb-4 flex justify-between">تم الإغلاق اليوم <span class="bg-emerald-500 text-white text-xs px-2 rounded-full">1</span></h4>
+                        <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 opacity-70">
+                            <h5 class="font-bold text-xs text-slate-600 line-through">تفعيل مأخذ جديد</h5>
+                            <p class="text-[10px] text-slate-400 mt-1">تم الربط على بوابة 45. بواسطة: الإدارة</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- ================= نافذة مخطط العلبة (Modal) ================= -->
+    <div id="box-modal" class="fixed inset-0 bg-slate-900/60 z-50 hidden flex-col items-center justify-center backdrop-blur-sm opacity-0 transition-opacity duration-300">
+        <div class="bg-white w-full max-w-4xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh] transform scale-95 transition-transform duration-300" id="box-modal-content">
+            <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50 rounded-t-2xl">
+                <div>
+                    <h3 class="text-xl font-bold text-slate-800" id="modal-box-title">مخطط العلبة</h3>
+                    <p class="text-sm text-slate-500">عرض أزواج التوصيل (Krone Blocks)</p>
+                </div>
+                <button onclick="closeBoxModal()" class="w-8 h-8 rounded-full bg-slate-200 hover:bg-red-100 hover:text-red-600 flex items-center justify-center transition"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="px-6 py-3 border-b border-slate-100 flex gap-6 text-sm justify-center bg-white">
+                <span class="flex items-center gap-2"><span class="w-4 h-4 rounded bg-emerald-500 border border-emerald-600"></span> خط متصل (نشط)</span>
+                <span class="flex items-center gap-2"><span class="w-4 h-4 rounded bg-slate-200 border border-slate-300"></span> منفذ شاغر</span>
+                <span class="flex items-center gap-2"><span class="w-4 h-4 rounded bg-red-500 border border-red-600"></span> عطل بالمخرج</span>
+            </div>
+            <div class="p-6 overflow-y-auto bg-slate-100 flex-1">
+                <div class="flex flex-wrap gap-8 justify-center" id="krone-container">
+                    <!-- يولد برمجياً -->
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-slate-200 bg-white rounded-b-2xl flex justify-between items-center text-sm">
+                <span class="text-slate-500">المنافذ المعروضة: 100 زوج (10 مساطر)</span>
+                <button class="bg-slate-800 text-white px-4 py-2 rounded-lg hover:bg-slate-700 transition"><i class="fa-solid fa-print ml-2"></i>طباعة</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= JavaScript ================= -->
+    <script>
+        // 1. نظام التنقل (SPA)
+        const pageTitles = {
+            'dashboard': 'لوحة القيادة - نظرة عامة',
+            'boxes': 'إدارة علب التوزيع ومراقبة السعة',
+            'topology': 'المخطط الشجري للشبكة',
+            'directory': 'دليل الخطوط والموظفين',
+            'maintenance': 'تذاكر الصيانة والأعطال'
+        };
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(el => {
+                el.classList.remove('bg-blue-600', 'text-white', 'shadow-md');
+                el.classList.add('hover:bg-slate-800', 'hover:text-white');
+            });
+            document.getElementById('tab-' + tabId).classList.add('active');
+            
+            const activeBtn = document.getElementById('nav-' + tabId);
+            activeBtn.classList.remove('hover:bg-slate-800', 'hover:text-white');
+            activeBtn.classList.add('bg-blue-600', 'text-white', 'shadow-md');
+            document.getElementById('page-title').textContent = pageTitles[tabId];
+        }
+
+        // 2. البحث والتتبع في لوحة القيادة
+        function traceLine() {
+            const input = document.getElementById('quickSearch').value.trim();
+            const emptyState = document.getElementById('traceEmpty');
+            const resultState = document.getElementById('traceResult');
+            
+            if (input === '') {
+                emptyState.style.display = 'block';
+                resultState.style.display = 'none';
+                return;
+            }
+            
+            document.getElementById('searchExtOutput').textContent = input;
+            emptyState.style.display = 'none';
+            resultState.style.display = 'block';
+            
+            resultState.style.opacity = '0';
+            setTimeout(() => {
+                resultState.style.transition = 'opacity 0.4s ease';
+                resultState.style.opacity = '1';
+            }, 50);
+        }
+
+        document.getElementById('quickSearch').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') traceLine();
+        });
+
+        // 3. نظام النافذة المنبثقة للكرونات (Krone Blocks)
+        const modal = document.getElementById('box-modal');
+        const modalContent = document.getElementById('box-modal-content');
+        
+        function openBoxModal(boxName, usagePercentage) {
+            document.getElementById('modal-box-title').textContent = 'مخطط العلبة: ' + boxName;
+            generateKroneBlocks(usagePercentage);
+            
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modalContent.classList.remove('scale-95');
+            }, 10);
+        }
+
+        function closeBoxModal() {
+            modal.classList.add('opacity-0');
+            modalContent.classList.add('scale-95');
+            setTimeout(() => { modal.classList.add('hidden'); }, 300);
+        }
+
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) closeBoxModal();
+        });
+
+        function generateKroneBlocks(usagePercentage) {
+            const container = document.getElementById('krone-container');
+            container.innerHTML = ''; 
+            
+            for (let blockIdx = 1; blockIdx <= 10; blockIdx++) {
+                const blockDiv = document.createElement('div');
+                blockDiv.className = 'bg-white p-3 rounded-lg shadow-sm border border-slate-300 w-24 flex flex-col items-center';
+                
+                const blockTitle = document.createElement('div');
+                blockTitle.className = 'text-xs font-bold text-slate-400 mb-3 border-b w-full text-center pb-1';
+                blockTitle.textContent = 'Block ' + blockIdx;
+                blockDiv.appendChild(blockTitle);
+
+                for (let pairIdx = 1; pairIdx <= 10; pairIdx++) {
+                    const pairContainer = document.createElement('div');
+                    
+                    const rand = Math.random() * 100;
+                    let statusColor = 'bg-slate-200';
+                    let tooltipText = 'منفذ شاغر';
+                    
+                    if (rand < usagePercentage) {
+                        statusColor = 'bg-emerald-500 border-emerald-600';
+                        const randomExt = Math.floor(Math.random() * 8999 + 1000);
+                        tooltipText = `متصل بالرقم: ${randomExt}`;
+                        
+                        if (Math.random() < 0.05) {
+                            statusColor = 'bg-red-500 border-red-600';
+                            tooltipText = `الرقم: ${randomExt} (عطل)`;
+                        }
+                    }
+
+                    pairContainer.className = `port-pin relative w-full h-5 mb-1.5 rounded-sm ${statusColor} border-b-2 opacity-90 flex justify-between px-1 items-center`;
+                    
+                    const tooltip = document.createElement('div');
+                    tooltip.className = 'tooltip absolute -top-8 left-1/2 transform -translate-x-1/2 bg-slate-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap shadow-lg z-50';
+                    tooltip.textContent = tooltipText + ` | الزوج: ${pairIdx}`;
+                    
+                    pairContainer.innerHTML = `<div class="w-1.5 h-1.5 rounded-full bg-black/20 mx-1"></div><div class="w-1.5 h-1.5 rounded-full bg-black/20 mx-1"></div>`;
+                    pairContainer.appendChild(tooltip);
+                    blockDiv.appendChild(pairContainer);
+                }
+                container.appendChild(blockDiv);
+            }
+        }
+    </script>
+</body>
+</html>

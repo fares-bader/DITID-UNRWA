@@ -939,3 +939,25 @@ Route::get('unrwa-requests', [\App\Http\Controllers\UnrwaRequestController::clas
 Route::post('unrwa-requests', [\App\Http\Controllers\UnrwaRequestController::class, 'store'])->name('unrwa.requests.store');
 Route::post('unrwa-requests/{id}/update', [\App\Http\Controllers\UnrwaRequestController::class, 'update'])->name('unrwa.requests.update');
 Route::post('unrwa-requests/{id}/cancel', [\App\Http\Controllers\UnrwaRequestController::class, 'cancel'])->name('unrwa.requests.cancel');
+
+// ====== UNRWA CMDB Module ======
+Route::prefix('cmdb')->name('cmdb.')->middleware(['auth'])->group(function () {
+    Route::get('types', [\App\Http\Controllers\CmdbController::class, 'indexTypes'])->name('types.index');
+    Route::get('types/create', [\App\Http\Controllers\CmdbController::class, 'createType'])->name('types.create');
+    Route::post('types', [\App\Http\Controllers\CmdbController::class, 'storeType'])->name('types.store');
+
+    Route::get('objects', [\App\Http\Controllers\CmdbController::class, 'indexObjects'])->name('objects.index');
+    Route::get('objects/create', [\App\Http\Controllers\CmdbController::class, 'createObject'])->name('objects.create');
+    Route::post('objects', [\App\Http\Controllers\CmdbController::class, 'storeObject'])->name('objects.store');
+
+    Route::post('objects/link', [\App\Http\Controllers\CmdbController::class, 'linkAsset'])->name('objects.link');
+Route::post('objects/unlink', [\App\Http\Controllers\CmdbController::class, 'unlinkAsset'])->name('objects.unlink');
+
+Route::post('objects/link-object', [\App\Http\Controllers\CmdbController::class, 'linkObject'])->name('objects.link-object');
+    Route::post('objects/unlink-object', [\App\Http\Controllers\CmdbController::class, 'unlinkObject'])->name('objects.unlink-object');
+
+    Route::post('objects/upload-file', [\App\Http\Controllers\CmdbController::class, 'uploadFile'])->name('objects.upload-file');
+    Route::get('objects/download-file/{id}', [\App\Http\Controllers\CmdbController::class, 'downloadFile'])->name('objects.download-file');
+    Route::post('objects/delete-file', [\App\Http\Controllers\CmdbController::class, 'deleteFile'])->name('objects.delete-file');
+    
+});

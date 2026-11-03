@@ -525,6 +525,7 @@
     </a>
 </li>
 @endif
+
                                     @can('create', \App\Models\Asset::class)
                                         <li{!! (request()->query('status_type') == 'Deleted' ? ' class="active" aria-current="page"' : '') !!}>
                                             <a href="{{ url('hardware?status_type=Deleted') }}">
@@ -548,6 +549,26 @@
                                  visual home. The @if guard OR's the two
                                  governing permissions so a user with either
                                  can see the parent. --}}
+
+                                 <!-- ====== UNRWA Customization: CMDB Module ====== -->
+@if(Auth::user()->isSuperUser() || Auth::user()->hasAccess('admin'))
+<li class="treeview {!! (Request::is('cmdb/*') ? ' active' : '') !!}">
+    <a href="#">
+        <i class="fas fa-network-wired"></i>
+        <span>CMDB (Configurations)</span>
+        <i class="fa fa-angle-left pull-right"></i>
+    </a>
+    <ul class="treeview-menu">
+        <li {!! (Request::is('cmdb/objects*') ? ' class="active"' : '') !!}>
+            <a href="{{ route('cmdb.objects.index') }}"><i class="fas fa-server"></i> Configuration Items</a>
+        </li>
+        <li {!! (Request::is('cmdb/types*') ? ' class="active"' : '') !!}>
+            <a href="{{ route('cmdb.types.index') }}"><i class="fas fa-sitemap"></i> Object Types (Schemas)</a>
+        </li>
+    </ul>
+</li>
+@endif
+<!-- ============================================== -->
                             @if (Gate::allows('view', \App\Models\Asset::class) || Gate::allows('index', \App\Models\MaintenanceType::class))
                                 <li class="treeview{{ (request()->is('maintenances*') || request()->is('maintenance-types*')) ? ' active' : '' }}">
                                     <a href="#">
