@@ -40,7 +40,21 @@
     </x-container>
 @stop
 
-
 @section('moar_scripts')
 @include ('partials.bootstrap-table', ['exportFile' => 'activity-export', 'search' => true])
+
+<script nonce="{{ csrf_token() }}">
+    function loadNoteFormatter(value, row) {
+        if (!value) return '-';
+        
+        if (row.action_type === 'checkout' || (row.action_type && row.action_type.includes('checkout'))) {
+            return '<a href="{{ url('/') }}/hardware/load-note/' + value + '" target="_blank" class="btn btn-sm btn-info" data-tooltip="true" title="Print Load Note"><i class="fas fa-print"></i> Print Note</a>';
+        } 
+        else if (row.action_type === 'checkin from' || (row.action_type && row.action_type.includes('checkin'))) {
+            return '<a href="{{ url('/') }}/hardware/checkin-receipt/' + value + '" target="_blank" class="btn btn-sm btn-success" data-tooltip="true" title="Print Receipt"><i class="fas fa-print"></i> Print Receipt</a>';
+        }
+        
+        return '-';
+    }
+</script>
 @stop
