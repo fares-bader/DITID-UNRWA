@@ -74,6 +74,13 @@ class Setting extends Model
         'smtp_encryption',
         'smtp_from_address',
         'smtp_from_name',
+        'sharepoint_method',
+        'sharepoint_archive_email',
+        'sharepoint_tenant_id',
+        'sharepoint_client_id',
+        'sharepoint_client_secret',
+        'sharepoint_site_id',
+        'sharepoint_drive_id',
     ];
 
     protected $casts = [
@@ -371,7 +378,8 @@ class Setting extends Model
     {
         // At this point the endpoint is the same for everything.
         //  In the future this may want to be adapted for individual notifications.
-        return config('mail.reply_to.address');
+                return self::getSettings()->smtp_reply_to_address;
+
     }
 
     /**

@@ -59,4 +59,9 @@ class CmdbObject extends Model
     {
         return $this->hasMany(CmdbFile::class, 'cmdb_object_id');
     }
+
+    public function actionLogs()
+    {
+        return $this->morphMany(\App\Models\Actionlog::class, 'item')->orderBy('created_at', 'desc');
+    }
 }

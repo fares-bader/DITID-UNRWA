@@ -16,8 +16,6 @@
                     <x-icon type="branding"/> {{ trans('admin/settings/general.brand') }}
                 </x-slot:header>
 
-                {{-- Single demo-mode banner at the top so users don't wonder why
-                     changes silently fail. Renders nothing outside demo mode. --}}
                 <x-demo-callout />
 
                 <div class="col-md-12">
@@ -41,9 +39,6 @@
                             {{ trans('admin/settings/general.color_preferences') }}
                         </x-form.legend>
 
-                        {{-- Header color. Only this colorpicker gets div_id
-                             set — its live-preview JS handler binds to
-                             #header-color as the outer div selector. --}}
                         <x-form.row
                             :label="trans('admin/settings/general.header_color')"
                             name="header_color"
@@ -62,7 +57,6 @@
                             </x-slot:input>
                         </x-form.row>
 
-                        {{-- Nav link color --}}
                         <x-form.row
                             :label="trans('admin/settings/general.nav_link_color')"
                             name="nav_link_color"
@@ -81,7 +75,6 @@
                             </x-slot:input>
                         </x-form.row>
 
-                        {{-- Light link color --}}
                         <x-form.row
                             :label="trans('admin/settings/general.link_light_color')"
                             name="link_light_color"
@@ -100,7 +93,6 @@
                             </x-slot:input>
                         </x-form.row>
 
-                        {{-- Dark link color --}}
                         <x-form.row
                             :label="trans('admin/settings/general.link_dark_color')"
                             name="link_dark_color"
@@ -119,9 +111,6 @@
                             </x-slot:input>
                         </x-form.row>
 
-                        {{-- Reset-to-defaults action row. Not a form field —
-                             the button just resets the four color pickers to
-                             their stock hex codes via the JS handler below. --}}
                         <div class="form-group">
                             <div class="col-md-9 col-md-offset-3">
                                 <p class="form-control-static" style="padding-top: 7px;">
@@ -138,7 +127,6 @@
                             {{ trans('admin/settings/general.legends.logos') }}
                         </x-form.legend>
 
-                        {{-- Branding style: text-only, logo-only, or both. --}}
                         <x-form.row
                             :label="trans('admin/settings/general.web_brand')"
                             name="brand"
@@ -160,7 +148,6 @@
                             </x-slot:input>
                         </x-form.row>
 
-                        {{-- Logo --}}
                         @include('partials/forms/edit/uploadLogo', [
                             'logoVariable' => 'logo',
                             'logoId' => 'uploadLogo',
@@ -170,7 +157,6 @@
                             'helpBlock' => trans('general.logo_size') . trans('general.image_filetypes_help', ['size' => Helper::file_upload_max_size_readable()]),
                         ])
 
-                        {{-- Email logo --}}
                         @include('partials/forms/edit/uploadLogo', [
                             'logoVariable' => 'email_logo',
                             'logoId' => 'uploadEmailLogo',
@@ -179,7 +165,6 @@
                             'helpBlock' => trans('general.image_filetypes_help', ['size' => Helper::file_upload_max_size_readable()]),
                         ])
 
-                        {{-- Label logo --}}
                         @include('partials/forms/edit/uploadLogo', [
                             'logoVariable' => 'label_logo',
                             'logoId' => 'uploadLabelLogo',
@@ -188,7 +173,6 @@
                             'helpBlock' => trans('general.image_filetypes_help', ['size' => Helper::file_upload_max_size_readable()]),
                         ])
 
-                        {{-- PDF logo --}}
                         @include('partials/forms/edit/uploadLogo', [
                             'logoVariable' => 'acceptance_pdf_logo',
                             'logoId' => 'acceptancePdfEmailLogo',
@@ -197,7 +181,6 @@
                             'helpBlock' => trans('general.image_filetypes_help', ['size' => Helper::file_upload_max_size_readable()]),
                         ])
 
-                        {{-- Favicon --}}
                         @include('partials/forms/edit/uploadLogo', [
                             'logoVariable' => 'favicon',
                             'logoId' => 'uploadFavicon',
@@ -208,7 +191,6 @@
                             'maxSize' => 20000,
                         ])
 
-                        {{-- Default avatar --}}
                         @include('partials/forms/edit/uploadLogo', [
                             'logoVariable' => 'default_avatar',
                             'logoId' => 'defaultAvatar',
@@ -218,12 +200,6 @@
                             'helpBlock' => trans('admin/settings/general.default_avatar_help') . ' ' . trans('general.image_filetypes_help', ['size' => Helper::file_upload_max_size_readable()]),
                         ])
 
-                        {{-- Restore default avatar. Uses a label with embedded
-                             HTML link, which isn't expressible via the checkbox
-                             component's escaped label prop, so this one stays
-                             hand-rolled. Only surfaces when the operator has
-                             no avatar configured or the default.png is missing
-                             from disk. --}}
                         @if (($setting->default_avatar == '') || (($setting->default_avatar == 'default.png') && (Storage::disk('public')->missing('default.png'))))
                             <div class="form-group">
                                 <div class="col-md-9 col-md-offset-3">
@@ -238,7 +214,6 @@
                             </div>
                         @endif
 
-                        {{-- Load remote gravatars --}}
                         <x-form.checkbox-row
                             name="load_remote"
                             :section_label="trans('admin/settings/general.load_remote')"
@@ -248,7 +223,6 @@
                             input_div_class="col-md-9"
                         />
 
-                        {{-- Include logo when printing assets --}}
                         <x-form.checkbox-row
                             name="logo_print_assets"
                             :section_label="trans('admin/settings/general.logo_print_assets')"
@@ -257,7 +231,6 @@
                             input_div_class="col-md-9"
                         />
 
-                        {{-- Show URLs in emails --}}
                         <x-form.checkbox-row
                             name="show_url_in_emails"
                             :section_label="trans('admin/settings/general.show_url_in_emails')"
@@ -273,19 +246,13 @@
                             {{ trans('admin/settings/general.custom_css') }}
                         </x-form.legend>
 
-                        {{-- Custom CSS. help_html must use the static-attribute
-                             + {!! !!} form; the :help_html="trans(...)" dynamic
-                             binding runs the string through
-                             BladeCompiler::sanitizeComponentAttribute() which
-                             turns the <style> tags in the help text into
-                             literal &lt;style&gt; entities. --}}
                         <x-form.row name="custom_css" :label="trans('admin/settings/general.custom_css')" help_html="{!! trans('admin/settings/general.custom_css_help') !!}">
                             <x-slot:input>
                                 <x-input.textarea
                                     name="custom_css"
                                     :value="old('custom_css', $setting->custom_css)"
                                     placeholder="{{ trans('admin/settings/general.custom_css_placeholder') }}"
-                                    aria-label="custom_css"
+                                    aria-labelledby="custom_css"
                                     :disabled="config('app.lock_passwords')"
                                 />
                             </x-slot:input>
@@ -297,7 +264,6 @@
                             {{ trans('admin/settings/general.legends.footer') }}
                         </x-form.legend>
 
-                        {{-- Support footer --}}
                         <x-form.row name="support_footer" :label="trans('admin/settings/general.support_footer')">
                             <x-slot:input>
                                 <x-input.select
@@ -312,7 +278,6 @@
                             </x-slot:input>
                         </x-form.row>
 
-                        {{-- Version footer --}}
                         <x-form.row name="version_footer" :label="trans('admin/settings/general.version_footer')" :help_text="trans('admin/settings/general.version_footer_help')">
                             <x-slot:input>
                                 <x-input.select
@@ -327,7 +292,6 @@
                             </x-slot:input>
                         </x-form.row>
 
-                        {{-- Additional footer text --}}
                         <x-form.row name="footer_text" :label="trans('admin/settings/general.footer_text')" help_html="{!! trans('admin/settings/general.footer_text_help') !!}">
                             <x-slot:input>
                                 <x-input.textarea
@@ -344,8 +308,6 @@
 
                 </div>
 
-                {{-- Explicit footer preserves the demo-mode-disabled save state
-                     that the default x-box.footer doesn't offer. --}}
                 <x-slot:customfooter>
                     <div class="box-footer">
                         <div class="text-left col-md-6">
@@ -362,3 +324,43 @@
 
 @stop
 
+@push('js')
+<script nonce="{{ csrf_token() }}">
+    $(document).ready(function() {
+        // ====== UNRWA: Live Preview Sync (Background & Text Colors) ======
+        function updateSidebarStyle() {
+            var bg = $('#header_color').val() || '#5fa4cc';
+            var txt = $('#nav_link_color').val() || '#ffffff';
+
+            var css = `
+                .main-sidebar, .left-side, .wrapper { background-color: ${bg} !important; }
+                .sidebar-menu > li > a, .sidebar-menu > li > a i, .sidebar-menu > li > a span, .sidebar-menu > li > a .pull-right,
+                .sidebar-menu .treeview-menu > li > a, .sidebar-menu .treeview-menu > li > a i, .sidebar-menu .treeview-menu > li > a span { color: ${txt} !important; }
+                .sidebar-menu > li.header { color: ${txt} !important; opacity: 0.7; }
+                .sidebar-menu > li:hover > a, .sidebar-menu > li.active > a, .sidebar-menu > li.active > a > i, .sidebar-menu > li:hover > a > i { background-color: rgba(0,0,0,0.15) !important; border-left-color: ${txt} !important; color: ${txt} !important; }
+                .sidebar-menu .treeview-menu { background-color: rgba(0,0,0,0.1) !important; }
+                .sidebar-menu .treeview-menu > li.active > a, .sidebar-menu .treeview-menu > li > a:hover { color: ${txt} !important; background-color: rgba(0,0,0,0.15) !important; }
+                .sidebar-menu .treeview-menu > li.active > a i, .sidebar-menu .treeview-menu > li > a:hover i,
+                .sidebar-menu .treeview-menu > li.active > a span, .sidebar-menu .treeview-menu > li > a:hover span { color: ${txt} !important; }
+            `;
+
+            if ($('#unrwa-sidebar-style').length === 0) {
+                $('head').append('<style id="unrwa-sidebar-style"></style>');
+            }
+            $('#unrwa-sidebar-style').html(css);
+        }
+
+        // تحديث الألوان لحظياً عند اختيار لون جديد من نافذة الألوان
+        $('#header_color, #nav_link_color').on('changeColor', updateSidebarStyle);
+
+        // تحديث الألوان لحظياً إذا قام المستخدم بكتابة الكود يدوياً (Hex code)
+        $('#header_color, #nav_link_color').on('input', updateSidebarStyle);
+
+        // ربط زر استعادة الألوان الافتراضية
+        $('#branding-colors-reset').on('click', function() {
+            setTimeout(updateSidebarStyle, 200);
+        });
+        // =================================================================
+    });
+</script>
+@endpush

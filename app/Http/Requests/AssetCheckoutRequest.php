@@ -21,16 +21,17 @@ class AssetCheckoutRequest extends Request
      *
      * @return array
      */
-    public function rules()
+public function rules()
     {
         $settings = Setting::getSettings();
 
         $rules = [
-            // exists_undeleted rejects soft-deleted checkout targets so the
-            // controllers below cannot bind live inventory to trashed users,
-            // assets, or locations. Applied at request-validation time so a
-            // bad request bounces with 422 before any controller mutation.
             'assigned_user' => 'numeric|nullable|required_without_all:assigned_asset,assigned_location|exists_undeleted:users,id',
+            
+            // ====== UNRWA Customization: Require Destination Location when checking out to a User ======
+            'destination_location' => 'nullable|numeric|exists_undeleted:locations,id|required_with:assigned_user',
+            // ===========================================================================================
+            
             'assigned_asset' => 'numeric|nullable|required_without_all:assigned_user,assigned_location|exists_undeleted:assets,id',
             'assigned_location' => 'numeric|nullable|required_without_all:assigned_user,assigned_asset|exists_undeleted:locations,id',
             'status_id' => 'nullable|exists:status_labels,id,deployable,1',

@@ -11,7 +11,7 @@
     <!-- Tell the browser to be responsive to screen width -->
     <meta content="width=device-width, initial-scale=1" name="viewport">
 
-    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
 
 
     <link rel="apple-touch-icon"
@@ -49,6 +49,49 @@
             {!! $snipeSettings->show_custom_css() !!}
         </style>
     @endif
+
+<!-- ====== UNRWA Customization: Sync Sidebar Color with Navbar ====== -->
+    <style id="unrwa-sidebar-style">
+        .main-sidebar, .left-side, .wrapper {
+            background-color: {{ $snipeSettings->header_color ?? '#5fa4cc' }} !important;
+        }
+        .sidebar-menu > li > a,
+        .sidebar-menu > li > a i,
+        .sidebar-menu > li > a span,
+        .sidebar-menu > li > a .pull-right,
+        .sidebar-menu .treeview-menu > li > a,
+        .sidebar-menu .treeview-menu > li > a i,
+        .sidebar-menu .treeview-menu > li > a span {
+            color: {{ $snipeSettings->nav_link_color ?? '#ffffff' }} !important;
+        }
+        .sidebar-menu > li.header {
+            color: {{ $snipeSettings->nav_link_color ?? '#ffffff' }} !important;
+            opacity: 0.7;
+        }
+        .sidebar-menu > li:hover > a,
+        .sidebar-menu > li.active > a,
+        .sidebar-menu > li.active > a > i,
+        .sidebar-menu > li:hover > a > i {
+            background-color: rgba(0,0,0,0.15) !important;
+            border-left-color: {{ $snipeSettings->nav_link_color ?? '#ffffff' }} !important;
+            color: {{ $snipeSettings->nav_link_color ?? '#ffffff' }} !important;
+        }
+        .sidebar-menu .treeview-menu {
+            background-color: rgba(0,0,0,0.1) !important;
+        }
+        .sidebar-menu .treeview-menu > li.active > a,
+        .sidebar-menu .treeview-menu > li > a:hover {
+            color: {{ $snipeSettings->nav_link_color ?? '#ffffff' }} !important;
+            background-color: rgba(0,0,0,0.15) !important;
+        }
+        .sidebar-menu .treeview-menu > li.active > a i,
+        .sidebar-menu .treeview-menu > li > a:hover i,
+        .sidebar-menu .treeview-menu > li.active > a span,
+        .sidebar-menu .treeview-menu > li > a:hover span {
+            color: {{ $snipeSettings->nav_link_color ?? '#ffffff' }} !important;
+        }
+    </style>
+    <!-- ================================================================ -->
 
 
     <script nonce="{{ csrf_token() }}">
@@ -385,6 +428,7 @@
                 <section class="sidebar">
                     <!-- sidebar menu: : style can be found in sidebar.less -->
                     <ul class="sidebar-menu" data-widget="tree" {{ \App\Helpers\Helper::determineLanguageDirection() == 'rtl' ? 'style="margin-right:12px' : '' }}>
+                        <li class="header">{{ trans('general.overview') }}</li>
                         @can('admin')
                             <li {!! (\request()->route()->getName()=='home' ? ' class="active" aria-current="page"' : '') !!} class="firstnav">
                                 <a href="{{ route('home') }}">
@@ -393,6 +437,7 @@
                                 </a>
                             </li>
                         @endcan
+                        <li class="header">{{ trans('general.inventory') }}</li>
                         @can('index', \App\Models\Asset::class)
                                 <li class="treeview{{ ((request()->is('statuslabels/*') || request()->is('hardware*')) ? ' active' : '') }}">
                                 <a href="#">
@@ -516,16 +561,6 @@
                                                 {{ trans('general.requested') }}</a>
                                         </li>-->
                                     @endcan
-<!-- ====== UNRWA Customization: Admin Requests Manage ====== -->
-@if(Auth::user()->isSuperUser() || Auth::user()->hasAccess('admin'))
-<li {!! (Request::is('unrwa-requests/manage') ? ' class="active"' : '') !!}>
-    <a href="{{ route('unrwa.requests.manage') }}">
-        
-        <span>Manage Requests</span>
-    </a>
-</li>
-@endif
-
                                     @can('create', \App\Models\Asset::class)
                                         <li{!! (request()->query('status_type') == 'Deleted' ? ' class="active" aria-current="page"' : '') !!}>
                                             <a href="{{ url('hardware?status_type=Deleted') }}">
@@ -551,7 +586,7 @@
                                  can see the parent. --}}
 
                                  <!-- ====== UNRWA Customization: CMDB Module ====== -->
-@if(Auth::user()->isSuperUser() || Auth::user()->hasAccess('admin'))
+@can('cmdb.view')
 <li class="treeview {!! (Request::is('cmdb/*') ? ' active' : '') !!}">
     <a href="#">
         <i class="fas fa-network-wired"></i>
@@ -567,7 +602,7 @@
         </li>
     </ul>
 </li>
-@endif
+@endcan
 <!-- ============================================== -->
                             @if (Gate::allows('view', \App\Models\Asset::class) || Gate::allows('index', \App\Models\MaintenanceType::class))
                                 <li class="treeview{{ (request()->is('maintenances*') || request()->is('maintenance-types*')) ? ' active' : '' }}">
@@ -638,12 +673,7 @@
                                 </a>
                             </li>
                         @endcan
- <li {!! (Request::is('document-center*') ? ' class="active"' : '') !!}>
-                <a href="{{ route('document.center') }}">
-                    <i class="fas fa-file-invoice fa-fw"></i>
-                    <span>Document Center</span>
-                </a>
-            </li>
+                        <li class="header">{{ trans('general.people_and_requests') }}</li>
                         @can('view', \App\Models\User::class)
                                 <li class="treeview{{ (request()->is('users*') ? ' active' : '') }}" id="users-sidenav-option">
                                     <a href="#" {{$snipeSettings->shortcuts_enabled == 1 ? "accesskey=6" : ''}}>
@@ -701,6 +731,31 @@
                             </li>
                         @endcan
 
+                        <li {!! (Request::is('unrwa-requests') ? ' class="active" aria-current="page"' : '') !!}>
+                            <a href="{{ route('unrwa.requests.create') }}">
+                                <i class="fas fa-desktop fa-fw" aria-hidden="true"></i>
+                                <span>{{ trans('general.request_it_equipment') }}</span>
+                            </a>
+                        </li>
+
+                        <li class="header">{{ trans('general.administration') }}</li>
+
+@can('unrwa_requests.manage')
+                            <li {!! (Request::is('unrwa-requests/manage') ? ' class="active" aria-current="page"' : '') !!}>
+                                <a href="{{ route('unrwa.requests.manage') }}">
+                                    <i class="fas fa-inbox fa-fw" aria-hidden="true"></i>
+                                    <span>{{ trans('general.manage_requests') }}</span>
+                                </a>
+                            </li>
+                        @endcan
+                        @can('document_center.view')
+                        <li {!! (Request::is('document-center*') ? ' class="active" aria-current="page"' : '') !!}>
+                            <a href="{{ route('document.center') }}">
+                                <i class="fas fa-file-invoice fa-fw" aria-hidden="true"></i>
+                                <span>{{ trans('general.document_center') }}</span>
+                            </a>
+                        </li>
+@endcan
                         @can('backend.interact')
                             <li id="settings-sidenav-option" class="treeview {!! (request()->is(App\Helpers\Helper::SettingUrls()) ? ' active' : '') !!}">
                                 <a href="#" id="settings">
@@ -794,6 +849,7 @@
                         @endcan
 
                         @can('reports.view')
+                            <li class="header">{{ trans('general.insights') }}</li>
                             <li class="treeview{{ (request()->is('reports*') ? ' active' : '') }}">
 
                                 <a href="#" class="dropdown-toggle">
@@ -869,15 +925,6 @@
                                 </a>
                             </li> 
                         @endcan -->
-<!-- ====== UNRWA Customization: User Request Portal ====== -->
-<li {!! (Request::is('unrwa-requests') ? ' class="active"' : '') !!}>
-    <a href="{{ route('unrwa.requests.create') }}">
-        <i class="fas fa-desktop fa-fw"></i>
-        <span>Request IT Equipment</span>
-    </a>
-</li>
-<!-- ====================================================== -->
-
                     </ul>
                 </section>
                 <!-- /.sidebar -->

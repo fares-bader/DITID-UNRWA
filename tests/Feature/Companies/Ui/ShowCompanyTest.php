@@ -12,7 +12,15 @@ class ShowCompanyTest extends TestCase
     {
         $this->actingAs(User::factory()->superuser()->create())
             ->get(route('companies.show', Company::factory()->create()))
-            ->assertOk();
+            ->assertOk()
+            ->assertSee(trans('general.overview'))
+            ->assertSee(trans('general.inventory'))
+            ->assertSee(trans('general.people_and_requests'))
+            ->assertSee(trans('general.administration'))
+            ->assertSee(trans('general.insights'))
+            ->assertSee(trans('general.request_it_equipment'))
+            ->assertSee(trans('general.manage_requests'))
+            ->assertSee(trans('general.document_center'));
     }
 
     public function test_show_page_includes_parent_company_breadcrumb_hierarchy()

@@ -1502,4 +1502,41 @@ if (! config('app.lock_passwords')) {
         // Reject path separators in case a crafted value survives route decoding.
         return str_contains($filename, '/') || str_contains($filename, '\\');
     }
+    // =========================================================================
+    // UNRWA: SharePoint Integration Settings
+    // =========================================================================
+    public function getSharepointSettings(): View
+    {
+        $setting = Setting::getSettings();
+        return view('settings.sharepoint', compact('setting'));
+    }
+public function postSharepointSettings(Request $request): RedirectResponse
+    {
+        if (is_null($setting = Setting::getSettings())) {
+            return redirect()->to('admin')->with('error', trans('admin/settings/message.update.error'));
+        }
+
+        if (! config('app.lock_passwords')) {
+            // الحقول الجديدة
+            $setting->sharepoint_method = $request->input('sharepoint_method', 'email');
+            $setting->sharepoint_archive_email = $request->input('sharepoint_archive_email');
+            
+            // حقول الـ API القديمة
+            $setting->sharepoint_tenant_id = $request->input('sharepoint_tenant_id');
+            $setting->sharepoint_client_id = $request->input('sharepoint_client_id');
+            
+            if ($request->filled('sharepoint_client_secret')) {
+                $setting->sharepoint_client_secret = Crypt::encrypt($request->input('sharepoint_client_secret'));
+            }
+            
+            $setting->sharepoint_site_id = $request->input('sharepoint_site_id');
+            $setting->sharepoint_drive_id = $request->input('sharepoint_drive_id');
+        }
+
+        if ($setting->save()) {
+            return redirect()->route('settings.sharepoint.index')->with('success', 'SharePoint integration settings updated successfully!');
+        }
+
+        return redirect()->back()->withInput()->withErrors($setting->getErrors());
+    }
 }

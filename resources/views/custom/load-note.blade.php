@@ -85,6 +85,7 @@
     @php
         $isTransfer = false;
         $previousUser = null;
+        $collectedFrom = '____________________';
 
         if (isset($log) && $log->item_id) {
             $checkinLog = \App\Models\Actionlog::with('target')
@@ -100,6 +101,19 @@
                 $isTransfer = true;
                 $previousUser = $checkinLog->target; 
             }
+
+            // ====== UNRWA Logic: Determine the "Collected From" Location ======
+            if ($isTransfer && $previousUser) {
+                // If it's an immediate transfer, it came from the previous user's location
+                $collectedFrom = $previousUser->location?->name ?? $previousUser->department?->name ?? 'Unknown Location';
+            } elseif ($log->item_type === \App\Models\Asset::class) {
+                // If it's an asset, it came from its Default Location (RTD Location - Warehouse)
+                $collectedFrom = $log->item?->defaultLoc?->name ?? $issuer?->location?->name ?? '____________________';
+            } else {
+                // For consumables/accessories (their location doesn't change on checkout)
+                $collectedFrom = $log->item?->location?->name ?? $issuer?->location?->name ?? '____________________';
+            }
+            // =================================================================
         }
 
         $loadNoteNo = "ISD/" . date('y') . "/" . ($log->id ?? 'XX');
@@ -152,7 +166,7 @@
                         </tr>
                         <tr>
                             <td class="info-label">COLLECTED FROM<br><span class="small-text">(Supplier/Location)</span></td>
-                            <td class="info-value">{{ $log->item?->location?->name ?? '____________________' }}</td>
+                            <td class="info-value">{{ $collectedFrom }}</td>
                         </tr>
                     </table>
                 </td>
@@ -180,21 +194,29 @@
         <table class="info-box" style="width: 100%;">
             <tr>
                 <td class="info-label" style="width: 125px;">TO BE DELIVERED TO<br><span class="small-text">Consignee Details</span></td>
-                <td class="info-value">
-                    <span style="font-size: 13px;">{{ $log->target?->display_name ?? $log->target?->name ?? '_____________________' }}</span>
+                <td class="info-value" style="font-size: 13px;">
+                    {{ $log->target?->display_name ?? $log->target?->name ?? '_____________________' }}
+                    
                     @if(isset($log->target?->department))
-                        <span style="font-size: 10px; color: #444; font-weight:normal; margin-left: 8px;">
-                            <strong>/ Dept:</strong> {{ $log->target->department->name }} 
+                        <span style="font-size: 11px; font-weight:normal; margin-left: 8px;">
+                            / Dept: {{ $log->target->department->name }} 
                             @if(isset($log->target?->sub_department) && !empty($log->target->sub_department))
                                 - {{ $log->target->sub_department }}
                             @endif
                         </span>
                     @endif
-                    @if(isset($log->target?->location))
-                        <span style="font-size: 10px; color: #444; font-weight:normal; margin-left: 8px;">
-                            <strong>/ Loc:</strong> {{ $log->target->location->name }}
+                    
+                    <!-- ====== UNRWA: Actual Destination Location ====== -->
+                    @if(isset($log->location) || isset($log->item?->location))
+                        <span style="font-size: 12px; font-weight:bold; margin-left: 8px;">
+                            / Loc: {{ $log->location?->name ?? $log->item?->location?->name }}
+                        </span>
+                    @elseif(isset($log->target?->location))
+                        <span style="font-size: 11px; font-weight:normal; margin-left: 8px;">
+                            / User Loc: {{ $log->target->location->name }}
                         </span>
                     @endif
+                    <!-- ============================================================= -->
                 </td>
             </tr>
         </table>

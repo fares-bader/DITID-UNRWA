@@ -9,6 +9,46 @@
 {{-- Page content --}}
 @section('content')
 
+@push('css')
+<style>
+    .dashboard-activity-box {
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        height: 520px;
+    }
+
+    .dashboard-activity-box > .box-header {
+        flex: 0 0 auto;
+        display: flex;
+        align-items: center;
+        min-height: 48px;
+    }
+
+    .dashboard-activity-box > .box-header .box-tools {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .dashboard-activity-box > .box-body {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    @media (max-width: 767px) {
+        .dashboard-activity-box {
+            height: 500px;
+        }
+
+        .dashboard-activity-box > .box-header .box-tools {
+            gap: 2px;
+        }
+    }
+</style>
+@endpush
+
 @if ($snipeSettings->dashboard_message!='')
 <div class="row">
     <div class="col-md-12">
@@ -211,11 +251,14 @@
 
 <!-- recent activity -->
 <div class="row">
-  <div class="col-md-8">
-    <div class="box box-default">
+  <div class="col-md-12">
+    <div class="box box-default dashboard-activity-box">
       <div class="box-header with-border">
-        <h2 class="box-title">{{ trans('general.recent_activity') }}</h2>
+        <h2 class="box-title"><x-icon type="history" /> {{ trans('general.recent_activity') }}</h2>
         <div class="box-tools pull-right">
+            <a href="{{ route('reports.activity') }}" class="btn btn-default btn-sm">
+                {{ trans('general.viewall') }}
+            </a>
             <button type="button" class="btn btn-box-tool" data-widget="collapse" aria-hidden="true">
                 <x-icon type="minus" />
                 <span class="sr-only">{{ trans('general.collapse') }}</span>
@@ -223,40 +266,35 @@
         </div>
       </div><!-- /.box-header -->
       <div class="box-body">
-        <div class="row">
-          <div class="col-md-12">
-
-                <table
-                    data-cookie-id-table="dashActivityReport"
-                    data-height="500"
-                    data-pagination="false"
-                    data-side-pagination="server"
-                    data-id-table="dashActivityReport"
-                    data-sort-order="desc"
-                    data-show-columns="false"
-                    data-sort-name="created_at"
-                    id="dashActivityReport"
-                    class="table table-striped snipe-table"
-                    data-url="{{ route('api.activity.index', ['limit' => 25]) }}">
-                    <thead>
-                    <tr>
-                        <th scope="col" data-field="icon" data-visible="true" style="width: 40px;" class="hidden-xs" data-formatter="iconFormatter"><span  class="sr-only">{{ trans('admin/hardware/table.icon') }}</span></th>
-                        <th scope="col" class="col-sm-3" data-visible="true" data-field="created_at" data-formatter="dateDisplayFormatter">{{ trans('general.date') }}</th>
-                        <th scope="col" class="col-sm-2" data-visible="true" data-field="admin" data-formatter="usersLinkObjFormatter">{{ trans('general.created_by') }}</th>
-                        <th scope="col" class="col-sm-2" data-visible="true" data-field="action_type">{{ trans('general.action') }}</th>
-                        <th scope="col" class="col-sm-3" data-visible="true" data-field="item" data-formatter="polymorphicItemFormatter">{{ trans('general.item') }}</th>
-                        <th scope="col" class="col-sm-2" data-visible="true" data-field="target" data-formatter="polymorphicItemFormatter">{{ trans('general.target') }}</th>
-                    </tr>
-                    </thead>
-                </table>
-          </div><!-- /.col -->
-          <div class="text-center col-md-12" style="padding-top: 10px;">
-            <a href="{{ route('reports.activity') }}" class="btn btn-theme btn-sm" style="width: 100%">{{ trans('general.viewall') }}</a>
-          </div>
-        </div><!-- /.row -->
+        <table
+            data-cookie-id-table="dashActivityReport"
+            data-height="430"
+            data-pagination="false"
+            data-side-pagination="server"
+            data-id-table="dashActivityReport"
+            data-sort-order="desc"
+            data-show-columns="false"
+            data-sort-name="created_at"
+            id="dashActivityReport"
+            class="table table-striped snipe-table"
+            data-url="{{ route('api.activity.index', ['limit' => 25]) }}">
+            <thead>
+            <tr>
+                <th scope="col" data-field="icon" data-visible="true" style="width: 40px;" class="hidden-xs" data-formatter="iconFormatter"><span class="sr-only">{{ trans('admin/hardware/table.icon') }}</span></th>
+                <th scope="col" data-visible="true" data-field="created_at" data-formatter="dateDisplayFormatter">{{ trans('general.date') }}</th>
+                <th scope="col" data-visible="true" data-field="admin" data-formatter="usersLinkObjFormatter">{{ trans('general.created_by') }}</th>
+                <th scope="col" data-visible="true" data-field="action_type">{{ trans('general.action') }}</th>
+                <th scope="col" data-visible="true" data-field="item" data-formatter="polymorphicItemFormatter">{{ trans('general.item') }}</th>
+                <th scope="col" data-visible="true" data-field="target" data-formatter="polymorphicItemFormatter">{{ trans('general.target') }}</th>
+            </tr>
+            </thead>
+        </table>
       </div><!-- ./box-body -->
     </div><!-- /.box -->
   </div>
+</div>
+
+<div class="row">
   <div class="col-md-4">
         <div class="box box-default">
             <div class="box-header with-border">
@@ -283,9 +321,7 @@
         </div> <!-- /.box -->
   </div>
 
-</div> <!--/row-->
-<div class="row">
-    <div class="col-md-6">
+    <div class="col-md-4">
 
 		@if ((($snipeSettings->scope_locations_fmcs!='1') && ($snipeSettings->full_multiple_companies_support=='1')))
 			 <!-- Companies -->	
@@ -415,7 +451,7 @@
 		@endif
 			
     </div>
-    <div class="col-md-6">
+    <div class="col-md-4">
 
         <!-- Categories -->
         <div class="box box-default">
@@ -484,6 +520,7 @@
         </div> <!-- /.box -->
     </div>
 
+</div> <!--/row-->
 
 @endif
 

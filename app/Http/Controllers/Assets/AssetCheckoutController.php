@@ -164,10 +164,29 @@ class AssetCheckoutController extends Controller
                     return false;
                 }
 
-                return (bool) $asset->checkOut($target, $admin, $checkout_at, $expected_checkin, $request->input('note'), $request->input('name'), null, $request->boolean('sign_in_place'));
+                $success = (bool) $asset->checkOut($target, $admin, $checkout_at, $expected_checkin, $request->input('note'), $request->input('name'), null, $request->boolean('sign_in_place'));
+
+                // ====== UNRWA Customization: Force Destination Location ======
+                if ($success && request('checkout_to_type') == 'user' && $request->filled('destination_location')) {
+                    $asset->location_id = $request->input('destination_location');
+                    $asset::withoutEvents(function () use ($asset) {
+                        $asset->save();
+                    });
+                    
+                    // Update Actionlog so PDF gets correct destination
+                    \App\Models\Actionlog::where('item_id', $asset->id)
+                        ->where('item_type', \App\Models\Asset::class)
+                        ->where('action_type', 'checkout')
+                        ->orderBy('id', 'desc')
+                        ->limit(1)
+                        ->update(['location_id' => $request->input('destination_location')]);
+                }
+                // =============================================================
+
+                return $success;
             });
 
-if ($checkedOut) {
+            if ($checkedOut) {
                 $log = \App\Models\Actionlog::where('item_id', $asset->id)
                     ->where('item_type', \App\Models\Asset::class)
                     ->where('action_type', 'checkout')
@@ -179,7 +198,8 @@ if ($checkedOut) {
                     $log->vehicle_number = $request->input('vehicle_number');
                     $log->contract_po_number = $request->input('contract_po_number');
                     $log->save();
-if ($request->filled('unrwa_request_id')) {
+
+                    if ($request->filled('unrwa_request_id')) {
                         $unrwaReq = \App\Models\UnrwaAssetRequest::find($request->input('unrwa_request_id'));
                         if ($unrwaReq && $unrwaReq->status !== 'Fulfilled') {
                             $unrwaReq->status = 'Fulfilled';
@@ -188,6 +208,7 @@ if ($request->filled('unrwa_request_id')) {
                             $unrwaReq->save();
                         }
                     }
+
                     if ($request->boolean('send_pdf_email')) {
                         try {
                             $ccEmail = $request->input('cc_email');
@@ -255,7 +276,6 @@ if ($request->filled('unrwa_request_id')) {
                             \Illuminate\Support\Facades\Log::error('UNRWA Email Error: ' . $e->getMessage());
                         }
                     }
-                    // ========================================================
                 }
 
                 // When sign_in_place is requested and the target is a user, redirect to the
@@ -281,7 +301,7 @@ if ($request->filled('unrwa_request_id')) {
                         'sign_in_place_resource_type' => 'Assets',
                     ]);
 
-return redirect()->route('account.accept.item', $acceptance->id)
+                    return redirect()->route('account.accept.item', $acceptance->id)
                         ->with('success', trans('admin/hardware/message.checkout.success'))
                         ->with('load_note_url', route('hardware.loadnote', $log->id));
                 }
@@ -306,9 +326,10 @@ return redirect()->route('account.accept.item', $acceptance->id)
             return redirect()->back()->with('error', $e->getMessage());
         }
     }
-public function printLoadNote($logId)
+
+    public function printLoadNote($logId)
     {
-        $log = \App\Models\Actionlog::with(['item', 'target'])->findOrFail($logId);
+        $log = \App\Models\Actionlog::with(['item', 'target', 'location'])->findOrFail($logId);
 
         $allLogs = \App\Models\Actionlog::with(['item'])
             ->where('target_id', $log->target_id)

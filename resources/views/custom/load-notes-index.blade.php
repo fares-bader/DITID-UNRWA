@@ -32,7 +32,7 @@
                         <th data-sortable="true" data-field="target">Target</th>
                         <th data-field="items">Items</th>
                         <th data-sortable="true" data-field="issuer">Issuer</th>
-                        <th data-field="action" class="text-center">Action</th>
+                        <th data-field="action" class="text-center" style="min-width: 120px;">Action</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -88,15 +88,29 @@
                                 @endif
                             </td>
                             <td style="vertical-align: middle; text-align:center;">
-                                @if($isCheckout)
-                                    <a href="{{ url('/hardware/load-note/' . $first->id) }}" class="btn btn-sm btn-info" target="_blank" data-tooltip="true" title="Print Load Note">
-                                        <i class="fas fa-print"></i>
-                                    </a>
-                                @else
-                                    <a href="{{ url('/hardware/checkin-receipt/' . $first->id) }}" class="btn btn-sm btn-primary" target="_blank" data-tooltip="true" title="Print Return Receipt">
-                                        <i class="fas fa-print"></i>
-                                    </a>
-                                @endif
+                                <div class="btn-group">
+                                    <!-- Print Button -->
+                                    @if($isCheckout)
+                                        <a href="{{ url('/hardware/load-note/' . $first->id) }}" class="btn btn-sm btn-info" target="_blank" data-tooltip="true" title="Print Original Note">
+                                            <i class="fas fa-print"></i>
+                                        </a>
+                                    @else
+                                        <a href="{{ url('/hardware/checkin-receipt/' . $first->id) }}" class="btn btn-sm btn-primary" target="_blank" data-tooltip="true" title="Print Original Receipt">
+                                            <i class="fas fa-print"></i>
+                                        </a>
+                                    @endif
+
+                                    <!-- SharePoint Signed Note Buttons -->
+                                    @if($first->signed_note_path)
+                                        <a href="{{ route('document.center.download-signed', $first->id) }}" class="btn btn-sm btn-success" data-tooltip="true" title="View Signed Note (SharePoint)" target="_blank">
+                                            <i class="fab fa-microsoft"></i>
+                                        </a>
+                                    @else
+                                        <button class="btn btn-sm btn-default" data-toggle="modal" data-target="#uploadSignedModal" data-logid="{{ $first->id }}" title="Upload Signed Note">
+                                            <i class="fas fa-cloud-upload-alt text-muted"></i>
+                                        </button>
+                                    @endif
+                                </div>
                             </td>
                         </tr>
                     @endforeach
@@ -105,6 +119,38 @@
         </div>
     </x-box>
 </x-container>
+
+<!-- ====== UNRWA: Upload Signed Note Modal ====== -->
+<div class="modal fade" id="uploadSignedModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ route('document.center.upload-signed') }}" method="POST" enctype="multipart/form-data">
+                @csrf
+                <input type="hidden" name="log_id" id="modal_log_id" value="">
+                
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title"><i class="fas fa-signature text-primary"></i> Upload Signed Document</h4>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> This file will be uploaded directly to your Microsoft SharePoint library.
+                    </div>
+                    <div class="form-group">
+                        <label>Select File (PDF, JPG, PNG)</label>
+                        <input type="file" name="signed_file" accept=".pdf,.jpg,.jpeg,.png" required class="form-control">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success"><i class="fas fa-cloud-upload-alt"></i> Upload to SharePoint</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<!-- ============================================== -->
+
 @stop
 
 @section('moar_scripts')
@@ -138,6 +184,14 @@
                         doc_type: filterValue 
                     });
                 }
+            });
+
+            // Pass the Log ID to the Modal
+            $('#uploadSignedModal').on('show.bs.modal', function (event) {
+                var button = $(event.relatedTarget);
+                var logId = button.data('logid');
+                var modal = $(this);
+                modal.find('#modal_log_id').val(logId);
             });
         });
     </script>

@@ -29,6 +29,7 @@
                             <th>Linked Assets</th>
                             <th>Dependencies</th>
                             <th class="text-center">Files</th>
+                            <th class="text-center">History</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -62,9 +63,13 @@
                                     </button>
                                 </td>
                                 <td class="text-center">
-                                    <!-- ====== UNRWA: Attachments Button ====== -->
                                     <button type="button" class="btn btn-xs {{ $obj->files->count() > 0 ? 'bg-yellow' : 'btn-default' }}" data-toggle="modal" data-target="#manageFilesModal{{ $obj->id }}">
                                         <i class="fas fa-paperclip"></i> {{ $obj->files->count() }}
+                                    </button>
+                                </td>
+                                <td class="text-center">
+                                    <button type="button" class="btn btn-xs bg-black" data-toggle="modal" data-target="#historyModal{{ $obj->id }}" title="View History">
+                                        <i class="fas fa-history"></i> Log
                                     </button>
                                 </td>
                                 <td>
@@ -84,6 +89,7 @@
 <!-- ====== ALL MODALS OUTSIDE THE TABLE TO PREVENT HTML DOM HOISTING BUGS ====== -->
 @foreach($objects as $obj)
 
+    <!-- 1. Modal: ربط الأجهزة (Assets) -->
     <div class="modal fade" id="linkModal{{ $obj->id }}" tabindex="-1" role="dialog">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
@@ -113,6 +119,7 @@
         </div>
     </div>
 
+    <!-- 2. Modal: إدارة الأجهزة المربوطة (Assets Linked) -->
     <div class="modal fade" id="manageLinksModal{{ $obj->id }}" tabindex="-1" role="dialog">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
@@ -152,6 +159,7 @@
         </div>
     </div>
 
+    <!-- 3. Modal: الارتباطات (Object-to-Object) -->
     <div class="modal fade" id="manageRelationsModal{{ $obj->id }}" tabindex="-1" role="dialog">
         <div class="modal-dialog modal-lg" role="document">
             <div class="modal-content">
@@ -228,6 +236,7 @@
         </div>
     </div>
 
+    <!-- 4. Modal: المرفقات (Attachments) -->
     <div class="modal fade" id="manageFilesModal{{ $obj->id }}" tabindex="-1" role="dialog">
         <div class="modal-dialog modal-lg" role="document">
             <div class="modal-content">
@@ -236,7 +245,6 @@
                     <h4 class="modal-title"><i class="fas fa-paperclip"></i> Attachments for: {{ $obj->name }}</h4>
                 </div>
                 <div class="modal-body" style="background-color: #f4f4f4;">
-                    
                     <div class="box box-solid">
                         <div class="box-body">
                             <form action="{{ route('cmdb.objects.upload-file') }}" method="POST" enctype="multipart/form-data" class="form-inline">
@@ -252,7 +260,6 @@
                             </form>
                         </div>
                     </div>
-
                     <div class="box box-solid" style="margin-bottom: 0;">
                         <div class="box-body">
                             @if($obj->files->count() > 0)
@@ -292,7 +299,63 @@
                             @endif
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
+    <!-- 5. Modal: سجل التعديلات (Audit / History Log) -->
+    <div class="modal fade" id="historyModal{{ $obj->id }}" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-black" style="color: white;">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="color: white;"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title"><i class="fas fa-history"></i> Audit Log for: {{ $obj->name }}</h4>
+                </div>
+                <div class="modal-body">
+                    @if($obj->actionLogs->count() > 0)
+                        <div class="table-responsive">
+                            <table class="table table-striped table-bordered">
+                                <thead class="bg-gray">
+                                    <tr>
+                                        <th>Date / Time</th>
+                                        <th>Admin</th>
+                                        <th>Action</th>
+                                        <th>Details / Notes</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($obj->actionLogs as $log)
+                                        <tr>
+                                            <td style="white-space: nowrap;">{{ $log->created_at->format('Y-m-d H:i:s') }}</td>
+                                            <td style="font-weight: bold;">
+                                                @if($log->user)
+                                                    <a href="{{ route('users.show', $log->user->id) }}" target="_blank">{{ $log->user->display_name }}</a>
+                                                @else
+                                                    System
+                                                @endif
+                                            </td>
+                                            <td>
+                                                @if($log->action_type == 'create') <span class="label bg-green">Created</span>
+                                                @elseif($log->action_type == 'update') <span class="label bg-blue">Updated</span>
+                                                @elseif($log->action_type == 'uploaded') <span class="label bg-yellow">Uploaded</span>
+                                                @elseif($log->action_type == 'deleted') <span class="label bg-red">Deleted</span>
+                                                @else <span class="label bg-gray">{{ ucfirst($log->action_type) }}</span> @endif
+                                            </td>
+                                            <td>{{ $log->note ?: '-' }}</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @else
+                        <div class="alert alert-info text-center" style="margin-bottom: 0;">
+                            <i class="fas fa-info-circle fa-2x"></i><br><br>No history recorded for this configuration yet.
+                        </div>
+                    @endif
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>

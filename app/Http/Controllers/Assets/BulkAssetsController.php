@@ -756,54 +756,52 @@ class BulkAssetsController extends Controller
                 $expected_checkin = $request->input('expected_checkin');
             }
 
-            $errors = [];
-            DB::transaction(function () use ($target, $admin, $checkout_at, $expected_checkin, &$errors, $assets, $request) { // NOTE: $errors is passsed by reference!
+$errors = [];
+            DB::transaction(function () use ($target, $admin, $checkout_at, $expected_checkin, &$errors, $assets, $request) { 
                 foreach ($assets as $asset) {
                     $this->authorize('checkout', $asset);
 
-                    // See if there is a status label passed
                     if ($request->filled('status_id')) {
                         $asset->status_id = $request->input('status_id');
                     }
 
-                    // The bulk-checkout form now carries a plain `requestable`
-                    // checkbox (matching the per-item hardware/checkout form
-                    // so the localStorage-backed remembered-default JS is
-                    // shared between the two). Always set the flag from the
-                    // request, so the operator's explicit choice sticks.
                     $asset->requestable = $request->boolean('requestable');
 
-                    // Concurrency guard, same shape as Api\AssetsController::checkout.
-                    // Bulk checkout iterates over a selection of asset IDs and
-                    // calls checkOut per asset without a per-row lock; two
-                    // operators submitting overlapping bulk selections at the
-                    // same instant could each pass the caller-side selection
-                    // and both proceed through checkOut on the same asset,
-                    // landing duplicate history rows and doubling
-                    // checkout_counter for that asset. Re-fetch the row under
-                    // lockForUpdate and re-check availability before invoking
-                    // checkOut. Assets that racing bulk actions have already
-                    // claimed are skipped and surfaced as errors, matching how
-                    // the per-asset checkout path behaves.
                     $locked = Asset::whereKey($asset->id)->lockForUpdate()->first();
                     if (! $locked || ! $locked->availableForCheckout()) {
                         $errors = array_merge_recursive($errors, [
                             'asset_'.$asset->id => [trans('admin/hardware/message.checkout.not_available')],
                         ]);
-
                         continue;
                     }
 
                     $checkout_success = $asset->checkOut($target, $admin, $checkout_at, $expected_checkin, e($request->input('note')), $asset->name, null);
 
-                    // TODO - I think this logic is duplicated in the checkOut method?
-                    if ($target->location_id != '') {
-                        $asset->location_id = $target->location_id;
-                        // TODO - I don't know why this is being saved without events
+                    // ====== UNRWA Customization: Force Destination Location ======
+                    $final_location_id = null;
+                    if (request('checkout_to_type') == 'user' && $request->filled('destination_location')) {
+                        $final_location_id = $request->input('destination_location');
+                    } elseif ($target->location_id != '') {
+                        $final_location_id = $target->location_id;
+                    }
+
+                    if ($final_location_id) {
+                        $asset->location_id = $final_location_id;
                         $asset::withoutEvents(function () use ($asset) {
                             $asset->save();
                         });
+                        
+                        // Update Actionlog for PDF
+                        if (request('checkout_to_type') == 'user' && $request->filled('destination_location')) {
+                            \App\Models\Actionlog::where('item_id', $asset->id)
+                                ->where('item_type', \App\Models\Asset::class)
+                                ->where('action_type', 'checkout')
+                                ->orderBy('id', 'desc')
+                                ->limit(1)
+                                ->update(['location_id' => $final_location_id]);
+                        }
                     }
+                    // =============================================================
 
                     if (! $checkout_success) {
                         $errors = array_merge_recursive($errors, $asset->getErrors()->toArray());

@@ -268,4 +268,9 @@ Route::get('ht/{any?}',
     Route::get('hardware/load-note/{logId}', [AssetCheckoutController::class, 'printLoadNote'])->name('hardware.loadnote');
 Route::get('hardware/checkin-receipt/{logId}', [AssetCheckoutController::class, 'printCheckinReceipt'])->name('hardware.checkin_receipt');
 Route::get('hardware/maintenances/{maintenanceId}/gate-pass', [\App\Http\Controllers\MaintenancesController::class, 'printGatePass'])->name('maintenances.gatepass');
-Route::get('document-center', [\App\Http\Controllers\LoadNotesController::class, 'index'])->name('document.center');
+// ====== UNRWA: Document Center (SharePoint Files) ======
+Route::group(['prefix' => 'document-center', 'middleware' => ['auth', 'can:document_center.view']], function () {
+    Route::get('/', [\App\Http\Controllers\LoadNotesController::class, 'index'])->name('document.center');
+    Route::post('upload-signed', [\App\Http\Controllers\LoadNotesController::class, 'uploadSignedNote'])->name('document.center.upload-signed');
+    Route::get('signed/{id}', [\App\Http\Controllers\LoadNotesController::class, 'downloadSignedNote'])->name('document.center.download-signed');
+});

@@ -27,7 +27,7 @@
                             <th>Actions</th>
                         </tr>
                     </thead>
-                    <tbody>
+<tbody>
                         @foreach($types as $type)
                             <tr>
                                 <td><i class="{{ $type->icon }} fa-2x text-primary"></i></td>
@@ -36,9 +36,25 @@
                                 <td><span class="badge bg-green">{{ count($type->schema_definition ?? []) }} Fields</span></td>
                                 <td><span class="badge bg-blue">{{ $type->objects_count }} Objects</span></td>
                                 <td>
-                                    <!-- سنبرمج هذه الأزرار لاحقاً -->
-                                    <button class="btn btn-sm btn-info" disabled><i class="fas fa-edit"></i></button>
-                                    <button class="btn btn-sm btn-danger" disabled><i class="fas fa-trash"></i></button>
+                                    @can('cmdb.edit')
+                                        <a href="{{ route('cmdb.types.edit', $type->id) }}" class="btn btn-sm btn-info" title="Edit Schema"><i class="fas fa-edit"></i></a>
+                                    @else
+                                        <button class="btn btn-sm btn-info" disabled><i class="fas fa-edit"></i></button>
+                                    @endcan
+                                    
+                                    @can('cmdb.delete')
+                                        @if($type->objects_count == 0)
+                                            <form action="{{ route('cmdb.types.destroy', $type->id) }}" method="POST" style="display:inline-block;" onsubmit="return confirm('Are you sure you want to delete this CMDB Type?');">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-sm btn-danger" title="Delete Schema"><i class="fas fa-trash"></i></button>
+                                            </form>
+                                        @else
+                                            <button class="btn btn-sm btn-danger" disabled title="Cannot delete: In use by objects"><i class="fas fa-trash"></i></button>
+                                        @endif
+                                    @else
+                                        <button class="btn btn-sm btn-danger" disabled><i class="fas fa-trash"></i></button>
+                                    @endcan
                                 </td>
                             </tr>
                         @endforeach

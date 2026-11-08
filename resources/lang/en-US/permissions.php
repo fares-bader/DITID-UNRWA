@@ -460,5 +460,39 @@ return [
     'deny' => 'Deny Permission for :area',
     'inherit' => 'Inherit Permission for :area from permission groups',
     'use_groups' => 'We strongly suggest using Permission Groups instead of assigning individual permissions for easier management.',
+'cmdb-configurations' => [
+        'name' => 'CMDB (Configurations)',
+        'note' => 'Grants access to the CMDB (Configuration Management Database) section.',
+    ],
+    'cmdbview' => [
+        'name' => 'View CMDB',
+        'note' => 'Allows the user to view Configuration Items and Schemas.',
+    ],
+    'cmdbcreate' => [
+        'name' => 'Create CMDB Items',
+    ],
+    'cmdbedit' => [
+        'name' => 'Edit CMDB Items',
+    ],
+    'cmdbdelete' => [
+        'name' => 'Delete CMDB Items',
+    ],
 
+    'unrwa-requests' => [
+        'name' => 'UNRWA Requests',
+        'note' => 'Grants access to manage IT Equipment Requests submitted by users.',
+    ],
+    'unrwa_requestsmanage' => [
+        'name' => 'Manage Requests',
+        'note' => 'Allows the user to approve, fulfill, or cancel user requests.',
+    ],
+
+    'document-center' => [
+        'name' => 'Document Center',
+        'note' => 'Grants access to the Document Center section.',
+    ],
+    'document_centerview' => [
+        'name' => 'View Document Center',
+        'note' => 'Allows the user to access and view stored documents.',
+    ],
 ];

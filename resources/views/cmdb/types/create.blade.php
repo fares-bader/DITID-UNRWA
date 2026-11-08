@@ -1,15 +1,15 @@
 @extends('layouts/default')
-@section('title', 'Create CMDB Object Type')
+@section('title', isset($type) ? 'Edit CMDB Object Type' : 'Create CMDB Object Type')
 
 @section('content')
 <div class="row">
     <div class="col-md-8 col-md-offset-2">
         <div class="box box-primary">
             <div class="box-header with-border">
-                <h3 class="box-title"><i class="fas fa-hammer"></i> Build New CMDB Type</h3>
+                <h3 class="box-title"><i class="fas fa-hammer"></i> {{ isset($type) ? 'Edit Schema: ' . $type->name : 'Build New CMDB Type' }}</h3>
             </div>
             
-            <form action="{{ route('cmdb.types.store') }}" method="POST">
+            <form action="{{ isset($type) ? route('cmdb.types.update', $type->id) : route('cmdb.types.store') }}" method="POST">
                 @csrf
                 <div class="box-body">
                     
@@ -17,16 +17,16 @@
                     <div class="row">
                         <div class="col-md-6 form-group {{ $errors->has('name') ? 'has-error' : '' }}">
                             <label>Type Name<span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" name="name" placeholder="e.g. WAN Link, Server, Router" required value="{{ old('name') }}">
+                            <input type="text" class="form-control" name="name" placeholder="e.g. WAN Link, Server, Router" required value="{{ old('name', $type->name ?? '') }}">
                             {!! $errors->first('name', '<span class="help-block">:message</span>') !!}
                         </div>
                         <div class="col-md-6 form-group">
                             <label>Icon Class (FontAwesome Icon)</label>
-                            <input type="text" class="form-control" name="icon" placeholder="fas fa-server" value="{{ old('icon', 'fas fa-server') }}">
+                            <input type="text" class="form-control" name="icon" placeholder="fas fa-server" value="{{ old('icon', $type->icon ?? 'fas fa-server') }}">
                         </div>
                         <div class="col-md-12 form-group">
                             <label>Description</label>
-                            <textarea class="form-control" name="description" rows="2" placeholder="Brief description of this type...">{{ old('description') }}</textarea>
+                            <textarea class="form-control" name="description" rows="2" placeholder="Brief description of this type...">{{ old('description', $type->description ?? '') }}</textarea>
                         </div>
                     </div>
 
@@ -36,25 +36,39 @@
 
                     <!-- Dynamic Fields Container -->
                     <div id="dynamic-fields-container">
-                        <div class="row field-row" style="background: #f9f9f9; padding: 10px; border: 1px solid #ddd; margin-bottom: 10px;">
-                            <div class="col-md-6 form-group" style="margin-bottom: 0;">
-                                <label>Field Name</label>
-                                <input type="text" class="form-control" name="field_name[]" placeholder="e.g. IP Address" required>
+                        @php
+                            $fields = old('field_name', isset($type) ? ($type->schema_definition ?? []) : [ ['name' => '', 'type' => 'text'] ]);
+                            // If schema is completely empty but form loads, ensure at least one blank row exists
+                            if (count($fields) == 0) {
+                                $fields = [ ['name' => '', 'type' => 'text'] ];
+                            }
+                        @endphp
+                        
+                        @foreach($fields as $index => $field)
+                            @php
+                                $fName = is_array($field) ? $field['name'] : $field;
+                                $fType = is_array($field) ? ($field['type'] ?? 'text') : (old('field_type')[$index] ?? 'text');
+                            @endphp
+                            <div class="row field-row" style="background: #f9f9f9; padding: 10px; border: 1px solid #ddd; margin-bottom: 10px;">
+                                <div class="col-md-6 form-group" style="margin-bottom: 0;">
+                                    <label>Field Name</label>
+                                    <input type="text" class="form-control" name="field_name[]" placeholder="e.g. IP Address" value="{{ $fName }}" required>
+                                </div>
+                                <div class="col-md-5 form-group" style="margin-bottom: 0;">
+                                    <label>Field Type</label>
+                                    <select class="form-control" name="field_type[]" required>
+                                        <option value="text" {{ $fType == 'text' ? 'selected' : '' }}>Text</option>
+                                        <option value="textarea" {{ $fType == 'textarea' ? 'selected' : '' }}>Textarea</option>
+                                        <option value="number" {{ $fType == 'number' ? 'selected' : '' }}>Number</option>
+                                        <option value="date" {{ $fType == 'date' ? 'selected' : '' }}>Date</option>
+                                        <option value="url" {{ $fType == 'url' ? 'selected' : '' }}>URL</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-1 text-center" style="margin-top: 25px;">
+                                    <button type="button" class="btn btn-danger btn-sm remove-field-btn" style="{{ $loop->first && count($fields) == 1 ? 'display:none;' : '' }}" title="Remove Field"><i class="fas fa-times"></i></button>
+                                </div>
                             </div>
-                            <div class="col-md-5 form-group" style="margin-bottom: 0;">
-                                <label>Field Type</label>
-                                <select class="form-control" name="field_type[]" required>
-                                    <option value="text">Text</option>
-                                    <option value="textarea">Textarea</option>
-                                    <option value="number">Number</option>
-                                    <option value="date">Date</option>
-                                    <option value="url">URL</option>
-                                </select>
-                            </div>
-                            <div class="col-md-1 text-center" style="margin-top: 25px;">
-                                <button type="button" class="btn btn-danger btn-sm remove-field-btn" style="display:none;" title="Remove Field"><i class="fas fa-times"></i></button>
-                            </div>
-                        </div>
+                        @endforeach
                     </div>
 
                     <button type="button" id="add-field-btn" class="btn btn-success btn-sm"><i class="fas fa-plus"></i> Add Another Field</button>
@@ -74,6 +88,16 @@
 @section('moar_scripts')
 <script nonce="{{ csrf_token() }}">
     $(document).ready(function() {
+        // Toggle removal button visibility logic
+        function updateRemoveButtons() {
+            var rowCount = $('.field-row').length;
+            if (rowCount > 1) {
+                $('.remove-field-btn').show();
+            } else {
+                $('.remove-field-btn').hide();
+            }
+        }
+
         // Add new field row
         $('#add-field-btn').click(function() {
             var $firstRow = $('.field-row').first();
@@ -81,15 +105,20 @@
             
             $clone.find('input[type="text"]').val('');
             $clone.find('select').val('text');
-            $clone.find('.remove-field-btn').show();
             
             $('#dynamic-fields-container').append($clone);
+            updateRemoveButtons();
         });
 
         // Remove field row
         $(document).on('click', '.remove-field-btn', function() {
-            $(this).closest('.field-row').remove();
+            if ($('.field-row').length > 1) {
+                $(this).closest('.field-row').remove();
+                updateRemoveButtons();
+            }
         });
+        
+        updateRemoveButtons();
     });
 </script>
 @endsection

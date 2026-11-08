@@ -13,7 +13,6 @@ class UnrwaRequestController extends Controller
 public function index()
     {
         $user = Auth::user();
-        if (!$user->isSuperUser() && !$user->hasAccess('admin')) { abort(403, 'Unauthorized access.'); }
 
         $requests = UnrwaAssetRequest::with(['user', 'category', 'assetModel'])
             ->orderByRaw("FIELD(status, 'Pending', 'Fulfilled', 'Canceled') ASC")
@@ -126,7 +125,7 @@ public function index()
     public function update(Request $request, $id)
     {
         $user = Auth::user();
-        if (!$user->isSuperUser() && !$user->hasAccess('admin')) { abort(403); }
+        
 
         $request->validate([
             'category_id' => 'required|exists:categories,id',
@@ -148,7 +147,6 @@ public function index()
     public function cancel($id)
     {
         $user = Auth::user();
-        if (!$user->isSuperUser() && !$user->hasAccess('admin')) { abort(403); }
 
         $assetRequest = UnrwaAssetRequest::findOrFail($id);
         $assetRequest->status = 'Canceled';
@@ -160,7 +158,6 @@ public function index()
     public function fulfill($id)
     {
         $user = Auth::user();
-        if (!$user->isSuperUser() && !$user->hasAccess('admin')) { abort(403); }
 
         $request = UnrwaAssetRequest::with(['user', 'category', 'assetModel'])->findOrFail($id);
 
@@ -181,7 +178,6 @@ public function index()
     public function bulkFulfill(Request $request)
     {
         $user = Auth::user();
-        if (!$user->isSuperUser() && !$user->hasAccess('admin')) { abort(403); }
 
         $requestIds = $request->input('request_ids');
         if (!$requestIds || count($requestIds) == 0) {

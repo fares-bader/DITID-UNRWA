@@ -35,3 +35,26 @@
         </div>
     </div>
 </div>
+
+<!-- ====== UNRWA Customization: JS to toggle Destination Location ====== -->
+@push('js')
+<script nonce="{{ csrf_token() }}">
+    $(document).ready(function() {
+        function toggleDestinationLocation() {
+            var selectedType = $('input[name="checkout_to_type"]:checked').val();
+            
+            if (selectedType === 'user') {
+                // إظهار حقل الموقع عند اختيار مستخدم (وجعله مطلوباً)
+                $('#destination_location_wrapper').show();
+            } else {
+                // إخفاؤه إذا كان الاختيار موقع أو جهاز
+                $('#destination_location_wrapper').hide();
+            }
+        }
+        
+        $('input[name="checkout_to_type"]').change(toggleDestinationLocation);
+        toggleDestinationLocation(); // التشغيل الأولي
+    });
+</script>
+@endpush
+<!-- ==================================================================== -->

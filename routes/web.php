@@ -278,7 +278,13 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'authorize:superuser
 
     Route::get('settings/location-scoping-report.csv', [SettingsController::class, 'downloadLocationScopingReport'])
         ->name('settings.general.location_scoping_report');
+Route::get('settings/sharepoint', [\App\Http\Controllers\SettingsController::class, 'getSharepointSettings'])
+        ->name('settings.sharepoint.index')
+        ->breadcrumbs(fn (\Tabuna\Breadcrumbs\Trail $trail) => $trail->parent('settings.index')
+            ->push('SharePoint Integration', route('settings.sharepoint.index')));
 
+    Route::post('settings/sharepoint', [\App\Http\Controllers\SettingsController::class, 'postSharepointSettings'])
+        ->name('settings.sharepoint.save');
     Route::get('branding', [SettingsController::class, 'getBranding'])
         ->name('settings.branding.index')
         ->breadcrumbs(fn (Trail $trail) => $trail->parent('settings.index')
@@ -932,32 +938,45 @@ Route::middleware(['auth'])->get(
 Route::get('hardware/load-note/{logId}', [\App\Http\Controllers\Assets\AssetCheckoutController::class, 'printLoadNote'])->name('hardware.loadnote');
 Route::get('hardware/{assetId}/load-note/latest', [\App\Http\Controllers\Assets\AssetCheckoutController::class, 'printLatestLoadNote'])->name('hardware.loadnote.latest');
 // ====== UNRWA Custom Asset Requests ======
-Route::get('unrwa-requests/manage', [\App\Http\Controllers\UnrwaRequestController::class, 'index'])->name('unrwa.requests.manage');
-Route::get('unrwa-requests/{id}/fulfill', [\App\Http\Controllers\UnrwaRequestController::class, 'fulfill'])->name('unrwa.requests.fulfill');
-Route::post('unrwa-requests/bulk-fulfill', [\App\Http\Controllers\UnrwaRequestController::class, 'bulkFulfill'])->name('unrwa.requests.bulk-fulfill'); 
-Route::get('unrwa-requests', [\App\Http\Controllers\UnrwaRequestController::class, 'create'])->name('unrwa.requests.create');
-Route::post('unrwa-requests', [\App\Http\Controllers\UnrwaRequestController::class, 'store'])->name('unrwa.requests.store');
-Route::post('unrwa-requests/{id}/update', [\App\Http\Controllers\UnrwaRequestController::class, 'update'])->name('unrwa.requests.update');
-Route::post('unrwa-requests/{id}/cancel', [\App\Http\Controllers\UnrwaRequestController::class, 'cancel'])->name('unrwa.requests.cancel');
-
+Route::group(['middleware' => ['auth', 'can:unrwa_requests.manage']], function () {
+    Route::get('unrwa-requests/manage', [\App\Http\Controllers\UnrwaRequestController::class, 'index'])->name('unrwa.requests.manage');
+    Route::get('unrwa-requests/{id}/fulfill', [\App\Http\Controllers\UnrwaRequestController::class, 'fulfill'])->name('unrwa.requests.fulfill');
+    Route::post('unrwa-requests/bulk-fulfill', [\App\Http\Controllers\UnrwaRequestController::class, 'bulkFulfill'])->name('unrwa.requests.bulk-fulfill'); 
+    Route::post('unrwa-requests/{id}/update', [\App\Http\Controllers\UnrwaRequestController::class, 'update'])->name('unrwa.requests.update');
+    Route::post('unrwa-requests/{id}/cancel', [\App\Http\Controllers\UnrwaRequestController::class, 'cancel'])->name('unrwa.requests.cancel');
+});
+Route::group(['middleware' => ['auth']], function () {
+    Route::get('unrwa-requests', [\App\Http\Controllers\UnrwaRequestController::class, 'create'])->name('unrwa.requests.create');
+    Route::post('unrwa-requests', [\App\Http\Controllers\UnrwaRequestController::class, 'store'])->name('unrwa.requests.store');
+});
 // ====== UNRWA CMDB Module ======
 Route::prefix('cmdb')->name('cmdb.')->middleware(['auth'])->group(function () {
-    Route::get('types', [\App\Http\Controllers\CmdbController::class, 'indexTypes'])->name('types.index');
-    Route::get('types/create', [\App\Http\Controllers\CmdbController::class, 'createType'])->name('types.create');
-    Route::post('types', [\App\Http\Controllers\CmdbController::class, 'storeType'])->name('types.store');
+    Route::group(['middleware' => ['can:cmdb.view']], function () {
+        Route::get('types', [\App\Http\Controllers\CmdbController::class, 'indexTypes'])->name('types.index');
+        Route::get('objects', [\App\Http\Controllers\CmdbController::class, 'indexObjects'])->name('objects.index');
+        Route::get('objects/download-file/{id}', [\App\Http\Controllers\CmdbController::class, 'downloadFile'])->name('objects.download-file');
+    });
+    Route::group(['middleware' => ['can:cmdb.create']], function () {
+        Route::get('types/create', [\App\Http\Controllers\CmdbController::class, 'createType'])->name('types.create');
+        Route::post('types', [\App\Http\Controllers\CmdbController::class, 'storeType'])->name('types.store');
+        Route::get('objects/create', [\App\Http\Controllers\CmdbController::class, 'createObject'])->name('objects.create');
+        Route::post('objects', [\App\Http\Controllers\CmdbController::class, 'storeObject'])->name('objects.store');
+    });
+    Route::group(['middleware' => ['can:cmdb.edit']], function () {
+        Route::post('objects/link', [\App\Http\Controllers\CmdbController::class, 'linkAsset'])->name('objects.link');
+        Route::post('objects/unlink', [\App\Http\Controllers\CmdbController::class, 'unlinkAsset'])->name('objects.unlink');
+        Route::post('objects/link-object', [\App\Http\Controllers\CmdbController::class, 'linkObject'])->name('objects.link-object');
+        Route::post('objects/unlink-object', [\App\Http\Controllers\CmdbController::class, 'unlinkObject'])->name('objects.unlink-object');
+        Route::post('objects/upload-file', [\App\Http\Controllers\CmdbController::class, 'uploadFile'])->name('objects.upload-file');
+        Route::get('types/{id}/edit', [\App\Http\Controllers\CmdbController::class, 'editType'])->name('types.edit');
+        Route::post('types/{id}/update', [\App\Http\Controllers\CmdbController::class, 'updateType'])->name('types.update');
+        });
+    Route::group(['middleware' => ['can:cmdb.delete']], function () {
+        Route::post('objects/delete-file', [\App\Http\Controllers\CmdbController::class, 'deleteFile'])->name('objects.delete-file');
+        Route::delete('types/{id}', [\App\Http\Controllers\CmdbController::class, 'destroyType'])->name('types.destroy');
+    });
 
-    Route::get('objects', [\App\Http\Controllers\CmdbController::class, 'indexObjects'])->name('objects.index');
-    Route::get('objects/create', [\App\Http\Controllers\CmdbController::class, 'createObject'])->name('objects.create');
-    Route::post('objects', [\App\Http\Controllers\CmdbController::class, 'storeObject'])->name('objects.store');
 
-    Route::post('objects/link', [\App\Http\Controllers\CmdbController::class, 'linkAsset'])->name('objects.link');
-Route::post('objects/unlink', [\App\Http\Controllers\CmdbController::class, 'unlinkAsset'])->name('objects.unlink');
 
-Route::post('objects/link-object', [\App\Http\Controllers\CmdbController::class, 'linkObject'])->name('objects.link-object');
-    Route::post('objects/unlink-object', [\App\Http\Controllers\CmdbController::class, 'unlinkObject'])->name('objects.unlink-object');
 
-    Route::post('objects/upload-file', [\App\Http\Controllers\CmdbController::class, 'uploadFile'])->name('objects.upload-file');
-    Route::get('objects/download-file/{id}', [\App\Http\Controllers\CmdbController::class, 'downloadFile'])->name('objects.download-file');
-    Route::post('objects/delete-file', [\App\Http\Controllers\CmdbController::class, 'deleteFile'])->name('objects.delete-file');
-    
 });

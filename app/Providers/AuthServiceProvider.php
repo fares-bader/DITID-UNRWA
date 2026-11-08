@@ -179,7 +179,26 @@ class AuthServiceProvider extends ServiceProvider
                 return true;
             }
         });
-
+// ====== UNRWA Custom Gates ======
+        Gate::define('cmdb.view', function ($user) {
+            return $user->hasAccess('cmdb.view') || $user->hasAccess('admin');
+        });
+        Gate::define('cmdb.create', function ($user) {
+            return $user->hasAccess('cmdb.create') || $user->hasAccess('admin');
+        });
+        Gate::define('cmdb.edit', function ($user) {
+            return $user->hasAccess('cmdb.edit') || $user->hasAccess('admin');
+        });
+        Gate::define('cmdb.delete', function ($user) {
+            return $user->hasAccess('cmdb.delete') || $user->hasAccess('admin');
+        });
+        Gate::define('unrwa_requests.manage', function ($user) {
+            return $user->hasAccess('unrwa_requests.manage') || $user->hasAccess('admin');
+        });
+        Gate::define('document_center.view', function ($user) {
+            return $user->hasAccess('document_center.view') || $user->hasAccess('admin');
+        });
+        // ================================
         Gate::define('assets.view.encrypted_custom_fields', function ($user) {
             if ($user->hasAccess('assets.view.encrypted_custom_fields')) {
                 return true;

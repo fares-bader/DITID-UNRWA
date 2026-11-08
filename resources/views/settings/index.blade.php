@@ -157,7 +157,23 @@
             </div>
           </div>
         </div>
-
+<!-- ====== UNRWA: SharePoint Integration ====== -->
+        <div class="col-md-4 col-lg-3 col-sm-6 col-xl-1">
+          <div class="admin box box-default">
+            <div class="box-body text-center">
+              <h5>
+                <a href="{{ route('settings.sharepoint.index') }}" class="settings_button">
+                  <i class="fab fa-microsoft fa-4x" style="color: #0078d4;"></i>
+                  <br><br>
+                  <span class="name">SharePoint API</span>
+                  <span class="keywords" aria-hidden="true" style="display:none">sharepoint microsoft graph api</span>
+                </a>
+              </h5>
+              <p class="index-block">Configure Microsoft Graph API for Signed Load Notes</p>
+            </div>
+          </div>
+        </div>
+        <!-- =========================================== -->
         <div class="col-md-4 col-lg-3 col-sm-6 col-xl-1">
           <div class="admin box box-default">
             <div class="box-body text-center">

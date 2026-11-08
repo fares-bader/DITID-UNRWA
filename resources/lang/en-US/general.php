@@ -23,6 +23,14 @@ return [
     'adjusted_quantity' => 'adjusted quantity',
     'confirmed_quantity' => 'confirmed quantity',
     'admin' => 'Admin Settings',
+    'overview' => 'Overview',
+    'inventory' => 'Inventory',
+    'people_and_requests' => 'People & Requests',
+    'administration' => 'Administration',
+    'insights' => 'Reports & Insights',
+    'manage_requests' => 'Manage Requests',
+    'document_center' => 'Document Center',
+    'request_it_equipment' => 'Request IT Equipment',
     'admin_user' => 'Admin User',
     'admin_tooltip' => 'This user has admin privileges',
     'superuser' => 'Superuser',
@@ -827,5 +835,13 @@ return [
 
     'token_unrevoked' => 'API token reinstated',
     'token_revoked' => 'API token revoked',
+'cmdb.view' => 'View CMDB (Configuration Items)',
+    'cmdb.create' => 'Create CMDB Items & Schemas',
+    'cmdb.edit' => 'Edit & Link CMDB Items',
+    'cmdb.delete' => 'Delete CMDB Items & Files',
 
+    'unrwa_requests.manage' => 'Manage, Fulfill, and Cancel User IT Requests',
+
+    'document_center.view' => 'Access and View Document Center',
+    // ============================================
 ];

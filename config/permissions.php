@@ -496,5 +496,37 @@ return [
         ],
 
     ],
+    'CMDB (Configurations)' => [
+        [
+            'permission' => 'cmdb.view',
+            'display' => true,
+        ],
+        [
+            'permission' => 'cmdb.create',
+            'display' => true,
+        ],
+        [
+            'permission' => 'cmdb.edit',
+            'display' => true,
+        ],
+        [
+            'permission' => 'cmdb.delete',
+            'display' => true,
+        ],
+    ],
+
+    'UNRWA Requests' => [
+        [
+            'permission' => 'unrwa_requests.manage',
+            'display' => true,
+        ],
+    ],
+
+    'Document Center' => [
+        [
+            'permission' => 'document_center.view',
+            'display' => true,
+        ],
+    ],
 
 ];
