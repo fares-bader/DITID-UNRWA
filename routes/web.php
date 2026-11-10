@@ -21,6 +21,7 @@ use App\Http\Controllers\DepartmentsController;
 use App\Http\Controllers\DepreciationsController;
 use App\Http\Controllers\GroupsController;
 use App\Http\Controllers\HealthController;
+use App\Http\Controllers\InventoryDashboardController;
 use App\Http\Controllers\LabelsController;
 use App\Http\Controllers\MaintenanceTypesController;
 use App\Http\Controllers\ManufacturersController;
@@ -935,6 +936,10 @@ Route::middleware(['auth'])->get(
 )->name('home')
     ->breadcrumbs(fn (Trail $trail) => $trail->push('Home', route('home'))
     );
+Route::get('inventory/dashboard', [InventoryDashboardController::class, 'index'])
+    ->middleware('auth')
+    ->name('inventory.dashboard')
+    ->breadcrumbs(fn (Trail $trail) => $trail->parent('home')->push(trans('general.inventory_dashboard'), route('inventory.dashboard')));
 Route::get('hardware/load-note/{logId}', [\App\Http\Controllers\Assets\AssetCheckoutController::class, 'printLoadNote'])->name('hardware.loadnote');
 Route::get('hardware/{assetId}/load-note/latest', [\App\Http\Controllers\Assets\AssetCheckoutController::class, 'printLatestLoadNote'])->name('hardware.loadnote.latest');
 // ====== UNRWA Custom Asset Requests ======

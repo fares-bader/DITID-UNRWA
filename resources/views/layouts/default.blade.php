@@ -528,6 +528,14 @@
                             </li>
                         @endcan
                         <li class="header">{{ trans('general.inventory') }}</li>
+                        @if (Gate::allows('index', \App\Models\Asset::class) || Gate::allows('cmdb.view') || Gate::allows('view', \App\Models\License::class) || Gate::allows('index', \App\Models\Accessory::class) || Gate::allows('view', \App\Models\Consumable::class) || Gate::allows('view', \App\Models\Component::class))
+                            <li{!! (request()->routeIs('inventory.dashboard') ? ' class="active" aria-current="page"' : '') !!}>
+                                <a href="{{ route('inventory.dashboard') }}">
+                                    <i class="fas fa-chart-pie fa-fw" aria-hidden="true"></i>
+                                    <span>{{ trans('general.inventory_dashboard') }}</span>
+                                </a>
+                            </li>
+                        @endif
                         @can('index', \App\Models\Asset::class)
                                 <li class="treeview{{ (request()->is('statuslabels/*') || (request()->is('hardware*') && !request()->is('hardware/bulkcheckout') && !request()->is('hardware/quickscancheckin') && !request()->is('hardware/checkins/due') && !request()->is('hardware/audit/due') && !request()->is('hardware/bulkaudit')) ? ' active' : '') }}">
                                 <a href="#">
