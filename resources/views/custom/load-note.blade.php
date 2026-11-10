@@ -83,11 +83,13 @@
 <body onload="setTimeout(function(){ window.print(); }, 1000)">
 
     @php
+        $isConsolidated = $consolidatedLoadNote ?? false;
         $isTransfer = false;
         $previousUser = null;
+        $checkinLog = null;
         $collectedFrom = '____________________';
 
-        if (isset($log) && $log->item_id) {
+        if (!$isConsolidated && isset($log) && $log->item_id) {
             $checkinLog = \App\Models\Actionlog::with('target')
                 ->where('item_id', $log->item_id)
                 ->where('item_type', \App\Models\Asset::class)
@@ -116,8 +118,10 @@
             // =================================================================
         }
 
-        $loadNoteNo = "ISD/" . date('y') . "/" . ($log->id ?? 'XX');
-        $loadNoteLink = url()->current(); 
+        $loadNoteNo = $isConsolidated
+            ? $consolidatedReference
+            : "ISD/" . date('y') . "/" . ($log->id ?? 'XX');
+        $loadNoteLink = $isConsolidated ? $consolidatedQrUrl : url()->current();
         $loadNoteQrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=" . urlencode($loadNoteLink);
 
         $chunks = collect($allLogs)->chunk(5);
@@ -136,7 +140,9 @@
                 </td>
                 <td style="width: 50%; text-align: center;" class="header-title">
                     <div style="margin-bottom: 5px;">
-                        @if($isTransfer)
+                        @if($isConsolidated)
+                            CONSOLIDATED LOAD NOTE
+                        @elseif($isTransfer)
                             TRANSFER NOTE
                         @else
                             LOAD NOTE
@@ -230,7 +236,11 @@
                 @endif
                 <td class="info-label" style="width: 130px;">Approved & Issued By</td>
                 <td class="info-value" style="width: 35%;">
-                    {{ $issuer?->first_name ?? '' }} {{ $issuer?->last_name ?? '' }}
+                    @if($isConsolidated)
+                        {{ trans('general.load_note_multiple_issuers') }}
+                    @else
+                        {{ $issuer?->first_name ?? '' }} {{ $issuer?->last_name ?? '' }}
+                    @endif
                 </td>
                 <td class="info-label" style="width: 75px; text-align: center;">Signature</td>
                 <td style="text-align: center; width: 150px;">
@@ -287,6 +297,9 @@
                             $itemName = $item->name ?? 'License';
                             $unit = 'Lic';
                             $routePrefix = 'licenses';
+                        } elseif ($singleLog->item_type === \App\Models\Component::class) {
+                            $itemName = $item->name ?? 'Component';
+                            $routePrefix = 'components';
                         }
 
                         $itemLink = config('app.url') . "/" . $routePrefix . "/" . ($item->id ?? '');
@@ -300,6 +313,10 @@
                             <span style="font-weight: bold; font-size: 12px;">{{ $itemName }}</span>
                             <br>
                             <span style="font-size: 10px; color:#444;">
+                                @if($isConsolidated)
+                                    Issued {{ \Carbon\Carbon::parse($singleLog->created_at)->format('d M Y') }}
+                                    by {{ $singleLog->adminuser?->display_name ?? '—' }}<br>
+                                @endif
                                 @if($singleLog->item_type === \App\Models\Asset::class)
                                     Asset Tag: {{ $item->asset_tag ?? '-' }}
                                 @elseif($singleLog->item_type === \App\Models\Consumable::class)
@@ -308,6 +325,8 @@
                                     Model No: {{ $item->model_number ?? '-' }}
                                 @elseif($singleLog->item_type === \App\Models\License::class)
                                     Serial/Key: {{ $item->serial ?? '-' }}
+                                @elseif($singleLog->item_type === \App\Models\Component::class)
+                                    Serial: {{ $item->serial ?? '-' }}
                                 @endif
 
                                 @if(!empty($finalLocator))

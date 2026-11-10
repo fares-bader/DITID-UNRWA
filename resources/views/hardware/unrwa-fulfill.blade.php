@@ -14,7 +14,8 @@
                         @if($request->assetModel) <p><strong>Specific Model:</strong> {{ $request->assetModel->name }}</p> @endif
                     </div>
                     <div class="col-md-6 text-right">
-                        <p><strong>Requested Quantity:</strong> <span class="badge" style="font-size: 18px; background-color: #d9534f;" id="maxQty">{{ $request->quantity }}</span></p>
+                        <p><strong>Requested Quantity:</strong> <span class="badge" style="font-size: 18px; background-color: #d9534f;">{{ $request->quantity }}</span></p>
+                        @if($request->fulfilled_assets_count > 0)<p><strong>Already fulfilled:</strong> {{ $request->fulfilled_assets_count }} · <strong>Remaining:</strong> <span id="maxQty">{{ $request->remaining_quantity }}</span></p>@else<span id="maxQty" class="sr-only">{{ $request->remaining_quantity }}</span>@endif
                         <p><strong>Notes:</strong> {{ $request->notes ?: 'None' }}</p>
                     </div>
                 </div>
@@ -25,12 +26,20 @@
             <div class="box-header with-border">
                 <h3 class="box-title">Select Assets to Fulfill</h3>
                 <div class="box-tools pull-right">
-                    Selected: <strong id="selectedCount" class="text-success" style="font-size: 16px;">0</strong> / {{ $request->quantity }}
+                    Selected: <strong id="selectedCount" class="text-success" style="font-size: 16px;" aria-live="polite">0</strong> / {{ $request->remaining_quantity }} remaining
                 </div>
             </div>
             
             <div class="box-body">
+                <form action="{{ route('unrwa.requests.fulfill-assets') }}" method="POST" id="fulfillForm">
+                    @csrf
+                    <input type="hidden" name="checkout_to_type" value="user">
+                    <input type="hidden" name="assigned_user" value="{{ $request->user_id }}">
+                    <input type="hidden" name="redirect_option" value="unrwa_requests">
+                    <input type="hidden" name="unrwa_request_ids[]" value="{{ $request->id }}">
+                    <div id="selected-assets-container"></div>
                 @if($availableAssets->count() > 0)
+                    <div class="table-responsive" role="region" aria-label="Available assets" tabindex="0">
                     <table class="table table-striped table-hover">
                         <thead>
                             <tr>
@@ -46,7 +55,8 @@
                             @foreach($availableAssets as $asset)
                                 <tr>
                                     <td>
-                                        <input type="checkbox" name="selected_assets[]" value="{{ $asset->id }}" data-status="{{ $asset->status_id }}" class="asset-checkbox" style="transform: scale(1.5);">
+                                        <input type="checkbox" id="asset-{{ $asset->id }}" name="request_assets[{{ $request->id }}][]" value="{{ $asset->id }}" data-status="{{ $asset->status_id }}" data-asset-tag="{{ $asset->asset_tag }}" class="asset-checkbox" style="transform: scale(1.5);">
+                                        <label class="sr-only" for="asset-{{ $asset->id }}">Select asset {{ $asset->asset_tag }}</label>
                                     </td>
                                     <td style="font-weight:bold;">{{ $asset->asset_tag }}</td>
                                     <td>{{ $asset->model->name }}</td>
@@ -57,6 +67,7 @@
                             @endforeach
                         </tbody>
                     </table>
+                    </div>
                 @else
                     <div class="alert alert-warning">
                         <i class="fas fa-exclamation-triangle"></i> No available items found for this category/model in the inventory.
@@ -65,11 +76,13 @@
             </div>
 
             <div class="box-footer">
+                <p id="selection-limit-message" class="text-danger" role="status" aria-live="polite"></p>
                 <button type="button" class="btn bg-maroon pull-right" id="openModalBtn" disabled>
                     <i class="fas fa-truck"></i> Proceed to Dispatch (<span id="btnCount">0</span> Items)
                 </button>
             </div>
         </div>
+        </form>
     </div>
 </div>
 
@@ -82,43 +95,67 @@
       </div>
       <div class="modal-body">
           <div class="form-group">
-              <label>Driver's Name</label>
-              <input type="text" class="form-control" id="driver_name" placeholder="Optional">
+              <label for="destination_location">Destination location <span class="text-danger">*</span></label>
+              <select class="form-control js-data-ajax" data-endpoint="locations" data-company-id="{{ $request->user->company_id }}" data-placeholder="Select a destination" name="destination_location" id="destination_location" form="fulfillForm" required>
+                  @if($request->user->location)
+                      <option value="{{ $request->user->location_id }}" selected>{{ $request->user->location->name }}</option>
+                  @endif
+              </select>
+              <p class="help-block">Choose the physical location where the assets will be placed.</p>
           </div>
           <div class="form-group">
-              <label>Wagon / Track No.</label>
-              <input type="text" class="form-control" id="vehicle_number" placeholder="Optional">
+              <label for="driver_name">Driver's Name</label>
+              <input type="text" class="form-control" id="driver_name" name="driver_name" form="fulfillForm" placeholder="Optional">
           </div>
           <div class="form-group">
-              <label>SAP PO Number</label>
-              <input type="text" class="form-control" id="contract_po_number" placeholder="Optional">
+              <label for="vehicle_number">Wagon / Track No.</label>
+              <input type="text" class="form-control" id="vehicle_number" name="vehicle_number" form="fulfillForm" placeholder="Optional">
           </div>
           <div class="form-group">
-              <label>Notes</label>
-              <textarea class="form-control" id="note" rows="2" placeholder="Fulfilled request #{{ $request->id }}"></textarea>
+              <label for="contract_po_number">SAP PO Number</label>
+              <input type="text" class="form-control" id="contract_po_number" name="contract_po_number" form="fulfillForm" placeholder="Optional">
+          </div>
+          <div class="form-group">
+              <label for="note">Notes</label>
+              <textarea class="form-control" id="note" name="note" form="fulfillForm" rows="2" placeholder="Fulfilled request #{{ $request->id }}"></textarea>
+          </div>
+          <hr>
+          <div class="form-group" id="remainder-decision" style="display:none;" aria-live="polite">
+              <div class="alert alert-info">
+                  <strong>{{ trans('general.unrwa_remainder_title') }}</strong>
+                  <span>{{ trans('general.unrwa_remainder_help') }}</span>
+              </div>
+              <label for="remainder-action">{{ trans('general.unrwa_remainder_question', ['count' => '__COUNT__']) }}</label>
+              <select class="form-control" id="remainder-action" name="remainder_action[{{ $request->id }}]" form="fulfillForm">
+                  <option value="">{{ trans('general.unrwa_remainder_choose') }}</option>
+                  <option value="separate">{{ trans('general.unrwa_remainder_separate') }}</option>
+                  <option value="cancel">{{ trans('general.unrwa_remainder_cancel') }}</option>
+              </select>
           </div>
           <hr>
           <div class="form-group">
               <label class="form-control" style="cursor: pointer; background-color: #f9f9f9; border-left: 3px solid #0055A4;">
-                  <input type="checkbox" id="send_pdf_email" checked>
+                  <input type="checkbox" id="send_pdf_email" name="send_pdf_email" value="1" form="fulfillForm" checked>
                   <strong>Send Bulk PDF Load Note via Email</strong>
               </label>
           </div>
           <div class="form-group">
-              <label>CC Email (Manager/Security)</label>
+              <label for="cc_email">CC Email (Manager/Security)</label>
               <div class="input-group">
                   <span class="input-group-addon"><i class="fas fa-envelope"></i></span>
-                  <input class="form-control" type="email" id="cc_email" placeholder="security@unrwa.org">
+                  <input class="form-control" type="email" id="cc_email" name="cc_email" form="fulfillForm" placeholder="security@unrwa.org">
               </div>
           </div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-success" id="confirmFulfillBtn"><i class="fas fa-check"></i> Confirm & Fulfill</button>
+        <button type="submit" form="fulfillForm" class="btn btn-success" id="confirmFulfillBtn"><i class="fas fa-check"></i> Confirm & Fulfill</button>
       </div>
     </div>
   </div>
 </div>
+
+<div id="fulfillment-result" class="alert" role="status" aria-live="polite" aria-atomic="true" style="display:none;"></div>
 
 @endsection
 
@@ -126,84 +163,74 @@
 <script nonce="{{ csrf_token() }}">
     $(document).ready(function() {
         var maxQty = parseInt($('#maxQty').text());
-        var selectedAssets = [];
+
+        function updateRemainderDecision(checkedCount) {
+            var remainingAfterDispatch = Math.max(0, maxQty - checkedCount);
+            var $decision = $('#remainder-decision');
+            var $select = $('#remainder-action');
+
+            if (checkedCount > 0 && remainingAfterDispatch > 0) {
+                $decision.show();
+                $decision.find('label').text(@json(trans('general.unrwa_remainder_question', ['count' => '__COUNT__'])).replace('__COUNT__', remainingAfterDispatch));
+                $select.prop('required', true);
+            } else {
+                $decision.hide();
+                $select.prop('required', false).val('');
+            }
+        }
 
         $('.asset-checkbox').change(function() {
             var checkedCheckboxes = $('.asset-checkbox:checked');
             var checkedCount = checkedCheckboxes.length;
+            $('#selection-limit-message').text('');
             
             if (checkedCount > maxQty) {
                 $(this).prop('checked', false);
                 checkedCount--;
-                alert('You cannot select more than the requested quantity (' + maxQty + ').');
+                $('#selection-limit-message').text('You cannot select more than the requested quantity (' + maxQty + ').');
             }
+
+            checkedCheckboxes = $('.asset-checkbox:checked');
+            checkedCount = checkedCheckboxes.length;
             
             $('#selectedCount').text(checkedCount);
             $('#btnCount').text(checkedCount);
+            updateRemainderDecision(checkedCount);
 
             $('#openModalBtn').prop('disabled', checkedCount === 0);
             
             selectedAssets = [];
-            checkedCheckboxes.each(function() {
-                selectedAssets.push({
-                    id: $(this).val(),
-                    status_id: $(this).data('status')
-                });
-            });
         });
 
         $('#openModalBtn').click(function() {
             $('#dispatchModal').modal('show');
         });
 
-        $('#confirmFulfillBtn').click(function() {
-            var $btn = $(this);
-            $btn.html('<i class="fas fa-spinner fa-spin"></i> Processing...').prop('disabled', true);
-
-            var driver = $('#driver_name').val();
-            var vehicle = $('#vehicle_number').val();
-            var po = $('#contract_po_number').val();
-            var note = $('#note').val();
-            var sendEmail = $('#send_pdf_email').is(':checked') ? 1 : 0;
-            var ccEmail = $('#cc_email').val();
-            var userId = {{ $request->user_id }};
-            var requestId = {{ $request->id }};
-            var baseUrl = "{{ url('/') }}";
-            var token = "{{ csrf_token() }}";
-
-            var requests = [];
-
-            $.each(selectedAssets, function(index, asset) {
-                var url = baseUrl + "/hardware/" + asset.id + "/checkout";
-                
-                var payload = {
-                    _token: token,
-                    assigned_user: userId,
-                    checkout_to_type: 'user',
-                    status_id: asset.status_id,
-                    driver_name: driver,
-                    vehicle_number: vehicle,
-                    contract_po_number: po,
-                    note: note,
-                    send_pdf_email: (index === 0) ? sendEmail : 0,
-                    cc_email: ccEmail,
-                    unrwa_request_id: requestId 
-                };
-
-                requests.push($.ajax({
-                    url: url,
-                    type: 'POST',
-                    data: payload
-                }));
+        $('#fulfillForm').on('submit', function(event) {
+            var selected = $('.asset-checkbox:checked');
+            if (!selected.length) {
+                event.preventDefault();
+                $('#selection-limit-message').text('Select at least one asset to continue.');
+                return;
+            }
+            if (selected.length < maxQty && !$('#remainder-action').val()) {
+                event.preventDefault();
+                $('#selection-limit-message').text(@json(trans('general.unrwa_remainder_validation')));
+                $('#dispatchModal').modal('show');
+                $('#remainder-action').focus();
+                return;
+            }
+            if (!$('#destination_location').val()) {
+                event.preventDefault();
+                $('#dispatchModal').modal('show');
+                $('#destination_location').focus();
+                return;
+            }
+            $('#selected-assets-container').empty();
+            selected.each(function() {
+                $('<input>', { type: 'hidden', name: 'selected_assets[]', value: this.value }).appendTo('#selected-assets-container');
             });
-
-            Promise.all(requests).then(function() {
-                alert('Success! Items dispatched and Load Note generated.');
-                window.location.href = "{{ route('unrwa.requests.manage') }}"; 
-            }).catch(function() {
-                alert('Warning: Some items encountered errors during checkout. Returning to management screen.');
-                window.location.href = "{{ route('unrwa.requests.manage') }}";
-            });
+            $('#confirmFulfillBtn').html('<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> Processing...').prop('disabled', true).attr('aria-busy', 'true');
         });
     });
 </script>

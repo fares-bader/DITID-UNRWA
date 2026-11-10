@@ -939,9 +939,18 @@ Route::get('hardware/load-note/{logId}', [\App\Http\Controllers\Assets\AssetChec
 Route::get('hardware/{assetId}/load-note/latest', [\App\Http\Controllers\Assets\AssetCheckoutController::class, 'printLatestLoadNote'])->name('hardware.loadnote.latest');
 // ====== UNRWA Custom Asset Requests ======
 Route::group(['middleware' => ['auth', 'can:unrwa_requests.manage']], function () {
-    Route::get('unrwa-requests/manage', [\App\Http\Controllers\UnrwaRequestController::class, 'index'])->name('unrwa.requests.manage');
+    Route::get('unrwa-requests/manage', [\App\Http\Controllers\UnrwaRequestController::class, 'index'])
+        ->name('unrwa.requests.manage')
+        ->breadcrumbs(fn (Trail $trail) => $trail->parent('home')->push(trans('general.unrwa_manage_requests'), route('unrwa.requests.manage')));
+    Route::get('unrwa-requests/{id}', [\App\Http\Controllers\UnrwaRequestController::class, 'show'])
+        ->name('unrwa.requests.show')
+        ->breadcrumbs(fn (Trail $trail) => $trail->parent('unrwa.requests.manage')->push(
+            trans('general.unrwa_request_detail_breadcrumb', ['id' => request()->route('id')]),
+            route('unrwa.requests.show', request()->route('id'))
+        ));
     Route::get('unrwa-requests/{id}/fulfill', [\App\Http\Controllers\UnrwaRequestController::class, 'fulfill'])->name('unrwa.requests.fulfill');
     Route::post('unrwa-requests/bulk-fulfill', [\App\Http\Controllers\UnrwaRequestController::class, 'bulkFulfill'])->name('unrwa.requests.bulk-fulfill'); 
+    Route::post('unrwa-requests/fulfill-assets', [\App\Http\Controllers\Assets\BulkAssetsController::class, 'storeCheckout'])->name('unrwa.requests.fulfill-assets');
     Route::post('unrwa-requests/{id}/update', [\App\Http\Controllers\UnrwaRequestController::class, 'update'])->name('unrwa.requests.update');
     Route::post('unrwa-requests/{id}/cancel', [\App\Http\Controllers\UnrwaRequestController::class, 'cancel'])->name('unrwa.requests.cancel');
 });

@@ -16,6 +16,7 @@
                 </div>
             </div>
             <div class="box-body">
+                <div class="table-responsive" role="region" aria-label="Configuration types" tabindex="0">
                 <table class="table table-striped snipe-table" id="cmdbTypesTable">
                     <thead>
                         <tr>
@@ -28,7 +29,7 @@
                         </tr>
                     </thead>
 <tbody>
-                        @foreach($types as $type)
+                        @forelse($types as $type)
                             <tr>
                                 <td><i class="{{ $type->icon }} fa-2x text-primary"></i></td>
                                 <td style="font-weight: bold; font-size: 15px;">{{ $type->name }}</td>
@@ -57,9 +58,14 @@
                                     @endcan
                                 </td>
                             </tr>
-                        @endforeach
+                        @empty
+                            <tr>
+                                <td colspan="6" class="text-center text-muted">No configuration types have been created yet.</td>
+                            </tr>
+                        @endforelse
                     </tbody>
                 </table>
+                </div>
             </div>
         </div>
     </div>

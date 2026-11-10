@@ -19,6 +19,7 @@ use App\Models\LicenseSeat;
 use App\Models\Location;
 use App\Models\Setting;
 use App\Models\Statuslabel;
+use App\Models\UnrwaAssetRequest;
 use App\Models\User;
 use App\View\Label;
 use Carbon\Carbon;
@@ -32,6 +33,7 @@ use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class BulkAssetsController extends Controller
 {
@@ -685,6 +687,8 @@ class BulkAssetsController extends Controller
         Context::add('action', 'bulk_asset_checkout');
 
         $this->authorize('checkout', Asset::class);
+        $isUnrwaBatch = $request->routeIs('unrwa.requests.fulfill-assets');
+        $returnRoute = $isUnrwaBatch ? route('unrwa.requests.manage') : route('hardware.bulkcheckout.show');
 
         try {
             $admin = auth()->user();
@@ -699,20 +703,90 @@ class BulkAssetsController extends Controller
             // so this is the sole source of truth.
             session()->put(['checkout_to_type' => request('checkout_to_type')]);
 
-            if (! is_array($request->input('selected_assets'))) {
-                return redirect()->route('hardware.bulkcheckout.show')->withInput()->with('error', trans('admin/hardware/message.checkout.no_assets_selected'));
+            if (! is_array($request->input('selected_assets')) || count(array_filter($request->input('selected_assets'))) === 0) {
+                return redirect($returnRoute)->withInput()->with('error', trans('admin/hardware/message.checkout.no_assets_selected'));
             }
 
             $asset_ids = array_filter($request->input('selected_assets'));
 
             $assets = Asset::findOrFail($asset_ids);
 
+            $unrwaRequests = collect();
+            $requestAssetMap = [];
+            if ($isUnrwaBatch) {
+                $requestIds = array_values(array_unique(array_map('intval', $request->input('unrwa_request_ids', []))));
+                $requestAssetMap = $request->input('request_assets', []);
+                $unrwaRequests = UnrwaAssetRequest::withCount('fulfilledAssets')
+                    ->whereIn('id', $requestIds)
+                    ->where('status', 'Pending')
+                    ->get()
+                    ->keyBy('id');
+                $validationErrors = [];
+
+                if ($requestIds === [] || $unrwaRequests->count() !== count($requestIds)) {
+                    $validationErrors['unrwa_request_ids'][] = 'One or more selected requests are no longer pending.';
+                }
+
+                if (! is_array($requestAssetMap)) {
+                    $validationErrors['request_assets'][] = 'Select assets under their matching requests.';
+                    $requestAssetMap = [];
+                }
+
+                $mappedAssetIds = [];
+                foreach ($requestAssetMap as $requestId => $mappedIds) {
+                    $requestId = (int) $requestId;
+                    $unrwaRequest = $unrwaRequests->get($requestId);
+                    if (! $unrwaRequest || ! is_array($mappedIds)) {
+                        $validationErrors['request_assets'][] = 'The selected assets do not match the requests.';
+                        continue;
+                    }
+
+                    $remainingQuantity = max(0, $unrwaRequest->quantity - $unrwaRequest->fulfilled_assets_count);
+                    if (count($mappedIds) > $remainingQuantity) {
+                        $validationErrors['request_assets'][] = 'The selected quantity exceeds the remaining quantity for request '.$requestId.'.';
+                    }
+
+                    $remainderAction = $request->input('remainder_action.'.$requestId);
+                    if (count($mappedIds) > 0 && count($mappedIds) < $remainingQuantity && ! in_array($remainderAction, ['separate', 'cancel'], true)) {
+                        $validationErrors['remainder_action.'.$requestId][] = 'Choose what to do with the remaining quantity for request '.$requestId.'.';
+                    }
+
+                    foreach ($mappedIds as $mappedId) {
+                        $assetId = (int) $mappedId;
+                        $mappedAssetIds[] = $assetId;
+                        $mappedAsset = $assets->firstWhere('id', $assetId);
+                        if (! $mappedAsset || ! $mappedAsset->model || (int) $mappedAsset->model->category_id !== (int) $unrwaRequest->category_id || ($unrwaRequest->model_id && (int) $mappedAsset->model_id !== (int) $unrwaRequest->model_id)) {
+                            $validationErrors['request_assets'][] = 'An asset does not match request '.$requestId.'.';
+                        }
+                    }
+                }
+
+                $selectedIds = array_map('intval', $asset_ids);
+                sort($selectedIds);
+                sort($mappedAssetIds);
+                if (count($mappedAssetIds) !== count(array_unique($mappedAssetIds)) || $mappedAssetIds !== $selectedIds) {
+                    $validationErrors['request_assets'][] = 'Each selected asset must belong to exactly one selected request.';
+                }
+
+                $targetUserIds = $unrwaRequests->pluck('user_id')->unique();
+                if (! $target instanceof User || $targetUserIds->count() !== 1 || (int) $targetUserIds->first() !== (int) $target->id) {
+                    $validationErrors['assigned_user'][] = 'Selected requests must belong to the checkout user.';
+                }
+
+                if ($validationErrors !== []) {
+                    return redirect($returnRoute)
+                        ->withInput()
+                        ->with('error', 'The request selection changed or contains invalid assets. Review it and try again.')
+                        ->withErrors($validationErrors);
+                }
+            }
+
             // Prevent checking out assets that are already checked out
             if ($assets->pluck('assigned_to')->unique()->filter()->isNotEmpty()) {
                 // re-add the asset ids so the assets select is re-populated
                 $request->session()->flashInput(['selected_assets' => $asset_ids]);
 
-                return redirect(route('hardware.bulkcheckout.show'))
+                return redirect($returnRoute)
                     ->with('error', trans('general.error_assets_already_checked_out'));
             }
 
@@ -732,7 +806,7 @@ class BulkAssetsController extends Controller
                     if ($mismatch) {
                         $request->session()->flashInput(['selected_assets' => $asset_ids]);
 
-                        return redirect(route('hardware.bulkcheckout.show'))
+                        return redirect($returnRoute)
                             ->with('error', trans('general.error_user_company_multiple'));
                     }
                 }
@@ -756,8 +830,11 @@ class BulkAssetsController extends Controller
                 $expected_checkin = $request->input('expected_checkin');
             }
 
-$errors = [];
-            DB::transaction(function () use ($target, $admin, $checkout_at, $expected_checkin, &$errors, $assets, $request) { 
+            $errors = [];
+            $failedAssets = [];
+            $checkedOutAssets = collect();
+            $remainderOutcomes = [];
+            DB::transaction(function () use ($target, $admin, $checkout_at, $expected_checkin, &$errors, &$failedAssets, &$checkedOutAssets, $assets, $request, $isUnrwaBatch) {
                 foreach ($assets as $asset) {
                     $this->authorize('checkout', $asset);
 
@@ -769,10 +846,19 @@ $errors = [];
 
                     $locked = Asset::whereKey($asset->id)->lockForUpdate()->first();
                     if (! $locked || ! $locked->availableForCheckout()) {
+                        $message = trans('admin/hardware/message.checkout.not_available');
                         $errors = array_merge_recursive($errors, [
-                            'asset_'.$asset->id => [trans('admin/hardware/message.checkout.not_available')],
+                            'asset_'.$asset->id => [$message],
                         ]);
+                        $failedAssets[$asset->id] = [
+                            'asset_tag' => $asset->asset_tag,
+                            'messages' => [$message],
+                        ];
                         continue;
+                    }
+
+                    if ($isUnrwaBatch && $request->filled('destination_location')) {
+                        $asset->location_id = $request->input('destination_location');
                     }
 
                     $checkout_success = $asset->checkOut($target, $admin, $checkout_at, $expected_checkin, e($request->input('note')), $asset->name, null);
@@ -804,14 +890,22 @@ $errors = [];
                     // =============================================================
 
                     if (! $checkout_success) {
-                        $errors = array_merge_recursive($errors, $asset->getErrors()->toArray());
+                        $assetErrors = $asset->getErrors()->toArray();
+                        $errors = array_merge_recursive($errors, $assetErrors);
+                        $failedAssets[$asset->id] = [
+                            'asset_tag' => $asset->asset_tag,
+                            'messages' => collect($assetErrors)->flatten()->values()->all(),
+                        ];
+                    } else {
+                        $checkedOutAssets->push($asset);
                     }
                 }
             });
 
-if (! $errors) {
+            $assetsToFinalize = $isUnrwaBatch ? $checkedOutAssets : ($errors ? collect() : $assets);
+            if ($assetsToFinalize->isNotEmpty()) {
                 CheckoutablesCheckedOutInBulk::dispatch(
-                    $assets,
+                    $assetsToFinalize,
                     $target,
                     $admin,
                     $checkout_at,
@@ -821,7 +915,7 @@ if (! $errors) {
 
                 $logIdsToPrint = []; 
 
-                foreach ($assets as $asset) {
+                foreach ($assetsToFinalize as $asset) {
                     $log = \App\Models\Actionlog::where('item_id', $asset->id)
                         ->where('item_type', \App\Models\Asset::class)
                         ->where('action_type', 'checkout')
@@ -834,9 +928,80 @@ if (! $errors) {
                         $log->contract_po_number = $request->input('contract_po_number');
                         $log->save();
 
-                        if (empty($logIdsToPrint)) {
-                            $logIdsToPrint[] = $log->id;
+                        $logIdsToPrint[] = $log->id;
+                    }
+                }
+
+                $batchId = $isUnrwaBatch ? (string) Str::uuid() : null;
+                if ($isUnrwaBatch) {
+                    foreach ($assetsToFinalize as $asset) {
+                        $requestId = null;
+                        foreach ($requestAssetMap as $mappedRequestId => $mappedIds) {
+                            if (in_array((string) $asset->id, array_map('strval', (array) $mappedIds), true)) {
+                                $requestId = (int) $mappedRequestId;
+                                break;
+                            }
                         }
+                        $logId = \App\Models\Actionlog::where('item_id', $asset->id)
+                            ->where('item_type', \App\Models\Asset::class)
+                            ->where('action_type', 'checkout')
+                            ->orderByDesc('id')->value('id');
+                        if ($requestId && $logId) {
+                            DB::table('unrwa_asset_request_assets')->insertOrIgnore([
+                                'request_id' => $requestId,
+                                'asset_id' => $asset->id,
+                                'checkout_action_log_id' => $logId,
+                                'batch_id' => $batchId,
+                                'created_at' => now(),
+                                'updated_at' => now(),
+                            ]);
+                        }
+                    }
+
+                    foreach ($unrwaRequests as $unrwaReq) {
+                        $fulfilledAsset = $assetsToFinalize->first(function ($asset) use ($requestAssetMap, $unrwaReq) {
+                            return in_array((string) $asset->id, array_map('strval', (array) ($requestAssetMap[$unrwaReq->id] ?? [])), true);
+                        });
+                        if ($fulfilledAsset && ! $unrwaReq->fulfilled_asset_id) {
+                            $unrwaReq->fulfilled_asset_id = $fulfilledAsset->id;
+                        }
+                        $fulfilledCount = $unrwaReq->fulfilledAssets()->count();
+                        $remainingQuantity = max(0, $unrwaReq->quantity - $fulfilledCount);
+                        $successfulForRequest = $assetsToFinalize->filter(function ($asset) use ($requestAssetMap, $unrwaReq) {
+                            return in_array((string) $asset->id, array_map('strval', (array) ($requestAssetMap[$unrwaReq->id] ?? [])), true);
+                        })->count();
+
+                        if ($remainingQuantity === 0) {
+                            $unrwaReq->status = 'Fulfilled';
+                            $unrwaReq->fulfilled_at = now();
+                        } elseif ($successfulForRequest > 0 && in_array($request->input('remainder_action.'.$unrwaReq->id), ['separate', 'cancel'], true)) {
+                            $remainderAction = $request->input('remainder_action.'.$unrwaReq->id);
+                            $unrwaReq->quantity = $fulfilledCount;
+                            $unrwaReq->status = 'Fulfilled';
+                            $unrwaReq->fulfilled_at = now();
+                            $unrwaReq->save();
+
+                            $followUpRequest = UnrwaAssetRequest::create([
+                                'parent_request_id' => $unrwaReq->id,
+                                'user_id' => $unrwaReq->user_id,
+                                'category_id' => $unrwaReq->category_id,
+                                'model_id' => $unrwaReq->model_id,
+                                'quantity' => $remainingQuantity,
+                                'request_tier' => $unrwaReq->request_tier,
+                                'notes' => $unrwaReq->notes,
+                                'status' => $remainderAction === 'separate' ? 'Pending' : 'Canceled',
+                            ]);
+
+                            $remainderOutcomes[] = [
+                                'request_id' => $unrwaReq->id,
+                                'quantity' => $remainingQuantity,
+                                'action' => $remainderAction,
+                                'follow_up_request_id' => $followUpRequest->id,
+                            ];
+
+                            continue;
+                        }
+                        $unrwaReq->save();
                     }
                 }
 
@@ -856,11 +1021,7 @@ if (! $errors) {
 
                             if ($logForPdf) {
                                 $allLogsRaw = \App\Models\Actionlog::with(['item'])
-                                    ->where('target_id', $logForPdf->target_id)
-                                    ->where('target_type', $logForPdf->target_type)
-                                    ->where('action_type', 'checkout')
-                                    ->where('created_at', $logForPdf->created_at)
-                                    ->get();
+                                    ->whereIn('id', $logIdsToPrint)->get();
 
                                 $allLogs = $allLogsRaw->map(function ($singleLog) {
                                     if ($singleLog->item_type === \App\Models\Asset::class && $singleLog->item) {
@@ -911,29 +1072,29 @@ if (! $errors) {
                         \Illuminate\Support\Facades\Log::error('UNRWA Bulk Email Error: ' . $e->getMessage());
                     }
                 }
-                if ($request->filled('unrwa_request_ids')) {
-                    foreach($request->input('unrwa_request_ids') as $rId) {
-                        $unrwaReq = \App\Models\UnrwaAssetRequest::find($rId);
-                        if ($unrwaReq && $unrwaReq->status !== 'Fulfilled') {
-                            $unrwaReq->status = 'Fulfilled';
-                            $unrwaReq->fulfilled_asset_id = $assets->first()->id ?? null;
-                            $unrwaReq->fulfilled_at = now();
-                            $unrwaReq->save();
-                        }
-                    }
-                }
                 // ========================================================
-
-                $redirect = $request->input('redirect_option') === 'bulk_checkout'
-                    ? route('hardware.bulkcheckout.show')
-                    : route('hardware.index');
 
             }
 
+            if ($isUnrwaBatch) {
+                return redirect($returnRoute)
+                    ->with('unrwa_fulfillment_results', [
+                        'successes' => $assetsToFinalize->pluck('asset_tag')->values()->all(),
+                        'failures' => array_values($failedAssets),
+                        'remainders' => $remainderOutcomes,
+                    ])
+                    ->with('unrwa_load_note_url', isset($logIdsToPrint[0]) ? route('hardware.loadnote', $logIdsToPrint[0]) : null);
+            }
+
+            if (! $errors) {
+                return redirect($request->input('redirect_option') === 'bulk_checkout' ? route('hardware.bulkcheckout.show') : route('hardware.index'))
+                    ->with('success', trans('admin/hardware/message.checkout.success'));
+            }
+
             // Redirect to the asset management page with error
-            return redirect()->route('hardware.bulkcheckout.show')->withInput()->with('error', trans_choice('admin/hardware/message.multi-checkout.error', $asset_ids))->withErrors($errors);
+            return redirect($returnRoute)->withInput()->with('error', trans_choice('admin/hardware/message.multi-checkout.error', count($asset_ids)))->withErrors($errors);
         } catch (ModelNotFoundException $e) {
-            return redirect()->route('hardware.bulkcheckout.show')->withInput()->with('error', trans_choice('admin/hardware/message.multi-checkout.error', $request->input('selected_assets')));
+            return redirect($returnRoute)->withInput()->with('error', trans_choice('admin/hardware/message.multi-checkout.error', count((array) $request->input('selected_assets'))));
         }
 
     }

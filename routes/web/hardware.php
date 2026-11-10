@@ -271,6 +271,7 @@ Route::get('hardware/maintenances/{maintenanceId}/gate-pass', [\App\Http\Control
 // ====== UNRWA: Document Center (SharePoint Files) ======
 Route::group(['prefix' => 'document-center', 'middleware' => ['auth', 'can:document_center.view']], function () {
     Route::get('/', [\App\Http\Controllers\LoadNotesController::class, 'index'])->name('document.center');
+    Route::post('load-note/combined', [\App\Http\Controllers\LoadNotesController::class, 'printCombinedLoadNote'])->name('document.center.load-note.combined');
     Route::post('upload-signed', [\App\Http\Controllers\LoadNotesController::class, 'uploadSignedNote'])->name('document.center.upload-signed');
     Route::get('signed/{id}', [\App\Http\Controllers\LoadNotesController::class, 'downloadSignedNote'])->name('document.center.download-signed');
 });

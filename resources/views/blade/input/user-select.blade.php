@@ -43,6 +43,7 @@
             id="{{ $id }}"
             style="width: 100%"
             aria-label="{{ $name }}"
+            @if ($errors->has($name)) aria-invalid="true" aria-describedby="{{ $name }}-error" @endif
             @required($required)
         >
             @if ($selected)

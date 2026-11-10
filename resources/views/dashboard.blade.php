@@ -185,6 +185,68 @@
     </div><!-- ./col -->
 </div>
 
+<div class="row">
+    @if ($canViewAssets)
+        <div class="col-lg-3 col-sm-6 col-xs-12">
+            <a href="{{ route('hardware.index', ['status_type' => 'RTD']) }}" aria-label="{{ trans('general.ready_to_deploy') }}: {{ number_format($counts['ready_to_deploy']) }}">
+                <div class="dashboard small-box bg-teal">
+                    <div class="inner">
+                        <h3>{{ number_format($counts['ready_to_deploy']) }}</h3>
+                        <p>{{ trans('general.ready_to_deploy') }}</p>
+                    </div>
+                    <div class="icon" aria-hidden="true"><x-icon type="assets" /></div>
+                    <span class="small-box-footer">{{ trans('general.view_all') }} <x-icon type="arrow-circle-right" /></span>
+                </div>
+            </a>
+        </div>
+    @endif
+
+    @if ($canManageRequests)
+        <div class="col-lg-3 col-sm-6 col-xs-12">
+            <a href="{{ route('unrwa.requests.manage', ['status' => 'Pending']) }}" aria-label="{{ trans('general.dashboard_pending_requests') }}: {{ number_format($counts['pending_requests']) }}">
+                <div class="dashboard small-box bg-yellow">
+                    <div class="inner">
+                        <h3>{{ number_format($counts['pending_requests']) }}</h3>
+                        <p>{{ trans('general.dashboard_pending_requests') }}</p>
+                    </div>
+                    <div class="icon" aria-hidden="true"><i class="fas fa-inbox"></i></div>
+                    <span class="small-box-footer">{{ trans('general.view_all') }} <x-icon type="arrow-circle-right" /></span>
+                </div>
+            </a>
+        </div>
+    @endif
+
+    @if ($canCheckinAssets)
+        <div class="col-lg-3 col-sm-6 col-xs-12">
+            <a href="{{ route('assets.checkins.due') }}" aria-label="{{ trans('general.dashboard_due_checkins') }}: {{ number_format($counts['due_for_checkin']) }}">
+                <div class="dashboard small-box {{ $counts['due_for_checkin'] > 0 ? 'bg-red' : 'bg-green' }}">
+                    <div class="inner">
+                        <h3>{{ number_format($counts['due_for_checkin']) }}</h3>
+                        <p>{{ trans('general.dashboard_due_checkins') }}</p>
+                    </div>
+                    <div class="icon" aria-hidden="true"><x-icon type="due" /></div>
+                    <span class="small-box-footer">{{ trans('general.view_all') }} <x-icon type="arrow-circle-right" /></span>
+                </div>
+            </a>
+        </div>
+    @endif
+
+    @if ($canViewDocumentCenter)
+        <div class="col-lg-3 col-sm-6 col-xs-12">
+            <a href="{{ route('document.center', ['document_type' => 'load_note', 'from' => now()->subDays(30)->toDateString(), 'to' => now()->toDateString()]) }}" aria-label="{{ trans('general.dashboard_recent_deliveries') }}: {{ number_format($counts['recent_deliveries']) }}">
+                <div class="dashboard small-box bg-light-blue">
+                    <div class="inner">
+                        <h3>{{ number_format($counts['recent_deliveries']) }}</h3>
+                        <p>{{ trans('general.dashboard_recent_deliveries') }}</p>
+                    </div>
+                    <div class="icon" aria-hidden="true"><i class="fas fa-file-invoice"></i></div>
+                    <span class="small-box-footer">{{ trans('general.view_all') }} <x-icon type="arrow-circle-right" /></span>
+                </div>
+            </a>
+        </div>
+    @endif
+</div>
+
 @if ($counts['grand_total'] == 0)
 
     <div class="row">

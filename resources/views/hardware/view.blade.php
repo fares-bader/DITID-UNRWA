@@ -50,6 +50,20 @@
 
         <x-page-column class="col-md-9 main-panel">
 
+            @php
+                $loadNotes = \App\Models\Actionlog::where('item_id', $asset->id)
+                    ->where('item_type', \App\Models\Asset::class)
+                    ->where('action_type', 'checkout')
+                    ->orderBy('created_at', 'desc')
+                    ->get();
+
+                $checkinReceipts = \App\Models\Actionlog::where('item_id', $asset->id)
+                    ->where('item_type', \App\Models\Asset::class)
+                    ->where('action_type', 'checkin from')
+                    ->orderBy('created_at', 'desc')
+                    ->get();
+            @endphp
+
             <x-tabs>
                 <x-slot:tabnav>
                     <x-tabs.details-tab/>
@@ -73,19 +87,23 @@
                     <x-tabs.upload-tab :item="$asset"/>
 
 <!-- ====== UNRWA Custom Tabs ====== -->
-                    <li>
-                        <a href="#load-notes-tab" data-toggle="tab" data-tooltip="true" title="Load Notes">
-                            <i class="fas fa-file-export fa-lg text-info"></i>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="#checkin-receipts-tab" data-toggle="tab" data-tooltip="true" title="Checkin Receipts">
-                            <i class="fas fa-file-import fa-lg text-success"></i>
-                        </a>
-                    </li>
+                    <x-tabs.nav-item
+                        name="load-notes-tab"
+                        icon="fas fa-file-export text-info"
+                        :label="trans('general.load_notes')"
+                        :count="$loadNotes->count()"
+                        :tooltip="trans('general.load_notes')"
+                    />
+                    <x-tabs.nav-item
+                        name="checkin-receipts-tab"
+                        icon="fas fa-file-import text-success"
+                        :label="trans('general.checkin_receipts')"
+                        :count="$checkinReceipts->count()"
+                        :tooltip="trans('general.checkin_receipts')"
+                    />
                     <!-- ====== UNRWA CMDB Tab ====== -->
                     <li>
-                        <a href="#cmdb" data-toggle="tab" data-tooltip="true" title="CMDB Configurations">
+                        <a href="#cmdb" data-toggle="tab" data-tooltip="true" title="CMDB Configurations" aria-label="CMDB Configurations" aria-controls="cmdb">
                             <i class="fas fa-project-diagram fa-lg text-purple"></i> 
                             <span class="badge bg-purple">{{ $asset->cmdbObjects->count() ?? 0 }}</span>
                         </a>
@@ -150,17 +168,48 @@
                             <!-- definition list content -->
                             <x-page-data>
 
+                                <dt class="asset-detail-heading" role="heading" aria-level="3">{{ trans('general.asset_identification') }}</dt>
+                                <dd class="asset-detail-heading-spacer" aria-hidden="true"></dd>
+
                                 <x-data-row :label="trans('admin/hardware/form.tag')" copy_what="asset_tag">
-                                    {{ $asset->asset_tag }}
+                                    <bdi dir="ltr">{{ $asset->asset_tag }}</bdi>
                                 </x-data-row>
 
                                 <x-data-row :label="trans('admin/hardware/form.name')" copy_what="asset_name">
                                     {{ $asset->name }}
                                 </x-data-row>
 
+                                @if ($asset->model)
+                                    <x-data-row :label="trans('admin/hardware/form.model')" copy_what="asset_model">
+                                        {!! $asset->model->present()->formattedNameLink !!}
+                                    </x-data-row>
+                                @endif
+
+                                @if (($asset->model) && ($asset->model->fieldset))
+                                    @foreach($asset->model->fieldset->fields as $field)
+                                        <x-data-row :label="$field->name">
+                                            <x-info-element.customfield :item="$asset" :field="$field"/>
+                                        </x-data-row>
+                                    @endforeach
+                                @endif
+
+                                <dt class="asset-detail-heading" role="heading" aria-level="3">{{ trans('general.asset_value') }}</dt>
+                                <dd class="asset-detail-heading-spacer" aria-hidden="true"></dd>
+
                                 <x-data-row :label="trans('admin/hardware/table.current_value')" copy_what="current_value">
                                     {{ (($asset->id) && ($asset->location) ? $asset->location->currency : $snipeSettings->default_currency) }}
                                     {{ Helper::formatCurrencyOutput($asset->getDepreciatedValue() )}}
+                                </x-data-row>
+
+                                <dt class="asset-detail-heading" role="heading" aria-level="3">{{ trans('general.asset_status_location') }}</dt>
+                                <dd class="asset-detail-heading-spacer" aria-hidden="true"></dd>
+
+                                <x-data-row :label="trans('general.location')" copy_what="location">
+                                    {!! $asset->location?->present()->formattedNameLink !!}
+                                </x-data-row>
+
+                                <x-data-row :label="trans('admin/hardware/form.default_location')" copy_what="default_location">
+                                    {!! $asset->defaultLoc?->present()->formattedNameLink !!}
                                 </x-data-row>
 
                                 <x-data-row :label="trans('general.last_audit')" copy_what="audit_date">
@@ -184,10 +233,6 @@
                                     @endif
                                 </x-data-row>
 
-                                <x-data-row :label="trans('admin/hardware/form.default_location')" copy_what="default_location">
-                                    {!!  $asset->defaultLoc?->present()->formattedNameLink !!}
-                                </x-data-row>
-
                                 @if ($asset->asset_eol_date)
                                     <x-data-row :label="trans('general.device_eol')" copy_what="eol_date">
                                         @if ($asset->asset_eol_date)
@@ -206,22 +251,14 @@
                                 @endif
 
 
-                                @if (($asset->model) && ($asset->model->fieldset))
-                                    @foreach($asset->model->fieldset->fields as $field)
-                                        <x-data-row :label="$field->name">
-                                            <x-info-element.customfield :item="$asset" :field="$field"/>
-                                        </x-data-row>
-                                    @endforeach
-                                @endif
-
-
-
                                 {{-- journal() chains off assetlog() which orders created_at DESC,
                                      so ->first() is the newest note. Template used to call
                                      ->last() which returned the oldest note (the Collection
                                      tail on a DESC ordering) — that was the "Last Note showing
                                      the first-created note" bug. --}}
                                 @if ($asset->journal->first())
+                                    <dt class="asset-detail-heading" role="heading" aria-level="3">{{ trans('general.asset_activity') }}</dt>
+                                    <dd class="asset-detail-heading-spacer" aria-hidden="true"></dd>
                                     <x-data-row :label="trans('general.last_note')" copy_what="last_note">
                                         <i class="fa-solid fa-quote-left"></i>
                                         {{ $asset->journal->first()->note }}
@@ -247,15 +284,6 @@
                                     <p class="text-danger" style="line-height: 20px;">
                                         <x-icon type="warning" class="text-danger"/> {{ trans('general.warning', ['warning' => trans('general.item_target_not_found_hard', ['item_type' => $asset->assignedType(), 'id' => $asset->assigned_to])]) }}
                                     </p>
-
-                                    <form action="{{ route('asset.checkin.force', $asset) }}" method="POST" class="form-inline" style="display: inline;">
-                                        {{ csrf_field() }}
-                                        {{ method_field('POST') }}
-                                        <button class="btn btn-sm btn-danger btn-block hidden-print" type="submit" data-tooltip="true" data-placement="top" data-title="{{ trans('general.force_checkin') }}">
-                                            <x-icon type="checkin" class="fa-fw"/>
-                                            {{ trans('general.force_checkin') }}
-                                        </button>
-                                    </form>
 
                                 </x-well>
                             @endif
@@ -494,18 +522,6 @@
                         </div>
                     </x-tabs.pane>
                     <!-- ========================================= -->
-@php
-                        $loadNotes = \App\Models\Actionlog::where('item_id', $asset->id)
-                                        ->where('item_type', \App\Models\Asset::class)
-                                        ->where('action_type', 'checkout')
-                                        ->orderBy('created_at', 'desc')->get();
-                                        
-                        $checkinReceipts = \App\Models\Actionlog::where('item_id', $asset->id)
-                                        ->where('item_type', \App\Models\Asset::class)
-                                        ->where('action_type', 'checkin from')
-                                        ->orderBy('created_at', 'desc')->get();
-                    @endphp
-
                     <!-- ====== UNRWA Load Notes Tab Pane ====== -->
                     <x-tabs.pane name="load-notes-tab">
                         <div class="table-responsive">
@@ -519,7 +535,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach($loadNotes as $log)
+                                    @forelse($loadNotes as $log)
                                         <tr>
                                             <td>{{ $log->created_at }}</td>
                                             <td>{{ $log->user ? $log->user->display_name : 'System' }}</td>
@@ -528,7 +544,11 @@
                                                 <a href="{{ route('hardware.loadnote', $log->id) }}" target="_blank" class="btn btn-sm btn-info"><i class="fas fa-print"></i> Print Load Note</a>
                                             </td>
                                         </tr>
-                                    @endforeach
+                                    @empty
+                                        <tr>
+                                            <td colspan="4" class="text-center text-muted">No load notes are available for this asset.</td>
+                                        </tr>
+                                    @endforelse
                                 </tbody>
                             </table>
                         </div>
@@ -547,7 +567,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach($checkinReceipts as $log)
+                                    @forelse($checkinReceipts as $log)
                                         <tr>
                                             <td>{{ $log->created_at }}</td>
                                             <td>{{ $log->user ? $log->user->display_name : 'System' }}</td>
@@ -556,52 +576,16 @@
                                                 <a href="{{ url('/hardware/checkin-receipt/'.$log->id) }}" target="_blank" class="btn btn-sm btn-success"><i class="fas fa-print"></i> Print Receipt</a>
                                             </td>
                                         </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                    </x-tabs.pane>
-
-                    <!-- ====== UNRWA CMDB Content Tab Pane ====== -->
-                    <x-tabs.pane name="cmdb">
-                        <div class="table-responsive">
-                            <table class="table table-striped">
-                                <thead>
-                                    <tr>
-                                        <th>Type</th>
-                                        <th>Configuration Name</th>
-                                        <th>Attributes & Settings</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @forelse($asset->cmdbObjects as $cmdb)
-                                        <tr>
-                                            <td><span class="label label-info"><i class="{{ $cmdb->type->icon }}"></i> {{ $cmdb->type->name }}</span></td>
-                                            <td style="font-weight: bold; font-size: 15px;">{{ $cmdb->name }}</td>
-                                            <td>
-                                                <table class="table table-bordered table-condensed" style="background-color: #f9f9f9; margin-bottom: 0;">
-                                                    @foreach($cmdb->attributes ?? [] as $key => $val)
-                                                        <tr>
-                                                            <td style="width: 30%;"><strong>{{ $key }}</strong></td>
-                                                            <td>{{ $val }}</td>
-                                                        </tr>
-                                                    @endforeach
-                                                </table>
-                                            </td>
-                                        </tr>
                                     @empty
                                         <tr>
-                                            <td colspan="3" class="text-center text-muted" style="padding: 30px;">
-                                                <i class="fas fa-info-circle fa-2x"></i><br><br>
-                                                No CMDB configurations linked to this asset yet.
-                                            </td>
+                                            <td colspan="4" class="text-center text-muted">No check-in receipts are available for this asset.</td>
                                         </tr>
                                     @endforelse
                                 </tbody>
                             </table>
                         </div>
                     </x-tabs.pane>
-                    <!-- ========================================= -->
+
                 </x-slot:tabpanes>
 
             </x-tabs>
@@ -612,13 +596,19 @@
             <x-box class="side-box expanded">
                 <x-info-panel :infoPanelObj="$asset" img_path="{{ app('assets_upload_url') }}">
                     <x-slot:buttons>
-
-                        @if (!$asset->assignedTo)
-                        <x-button.checkout permission="checkout" :item="$asset" :route="route('hardware.checkout.create', $asset->id)"/>
-                        @endif
-
-                        @if (!$asset->hasOrphanedAssignment())
+                        @if ($asset->hasOrphanedAssignment())
+                            @can('checkin', $asset)
+                                <form class="asset-force-checkin-form" action="{{ route('asset.checkin.force', $asset) }}" method="POST" data-confirm="{{ trans('general.force_checkin_confirm') }}">
+                                    @csrf
+                                    <button class="btn btn-sm btn-danger hidden-print" type="submit" data-tooltip="true" data-placement="top" title="{{ trans('general.force_checkin') }}" aria-label="{{ trans('general.force_checkin') }}">
+                                        <x-icon type="checkin" class="fa-fw"/>
+                                    </button>
+                                </form>
+                            @endcan
+                        @elseif ($asset->assignedTo)
                             <x-button.checkin permission="checkin" :item="$asset" :route="route('hardware.checkin.create', $asset->id)"/>
+                        @else
+                            <x-button.checkout permission="checkout" :item="$asset" :route="route('hardware.checkout.create', $asset->id)"/>
                         @endif
 
                         <x-button.edit :item="$asset" :route="route('hardware.edit', $asset->id)"/>
@@ -637,6 +627,25 @@
     </x-container>
 
 
+@push('css')
+<style>
+.asset-detail-heading {
+    float: none !important;
+    clear: both;
+    width: 100% !important;
+    padding: 13px 8px 7px !important;
+    border-top: var(--box-header-bottom-border) !important;
+    color: var(--main-theme-color);
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+}
+
+.asset-detail-heading-spacer { display: none; }
+.asset-force-checkin-form { display: inline-block; margin: 0; }
+</style>
+@endpush
+
 @section('moar_scripts')
         @can('files', $asset)
             @include ('modals.upload-file', ['item_type' => 'asset', 'item_id' => $asset->id])
@@ -648,6 +657,12 @@
         <x-modals.maintenance-complete />
 
         <script>
+            $(document).on('submit', 'form[data-confirm]', function (event) {
+                if (!window.confirm(this.dataset.confirm)) {
+                    event.preventDefault();
+                }
+            });
+
             function loadNoteFormatter(value, row) {
                 if (row.action_type === 'checkout' || (row.action_type && row.action_type.includes('checkout'))) {
                     return '<a href="{{ url('/') }}/hardware/load-note/' + value + '" target="_blank" class="btn btn-sm btn-info" data-tooltip="true" title="Print Load Note"><i class="fas fa-print"></i> Print Load Note</a>';

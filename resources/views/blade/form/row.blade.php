@@ -34,7 +34,12 @@
     // as a @props default because $name isn't in scope during Blade's
     // first extractPropNames() pass. Sibling components x-form.checkbox-row
     // and x-form.radio-row do the same thing.
-    $errors_class = $errors->has($name) ? ' has-error' : '';
+    $has_error = $name && $errors->has($name);
+    $errors_class = $has_error ? ' has-error' : '';
+    $described_by = collect([
+        $has_error ? $name.'-error' : null,
+        ($help_text || $help_html) ? $name.'-help' : null,
+    ])->filter()->implode(' ');
 @endphp
 
 <div {{ $attributes->merge(['class' => 'form-group'. $errors_class]) }}>
@@ -95,6 +100,8 @@
                     :required="Helper::checkIfRequired($item, $name)"
                     :placeholder="$placeholder"
                     :end_date="$end_date"
+                    :aria-describedby="$described_by ?: null"
+                    :aria-invalid="$has_error ? 'true' : null"
                 />
             @elseif ($blade_type === 'datetimepicker')
                 <x-input.datetimepicker
@@ -105,13 +112,16 @@
                     :placeholder="$placeholder"
                     :default_now="$default_now"
                     :side_by_side="$side_by_side"
+                    :aria-describedby="$described_by ?: null"
+                    :aria-invalid="$has_error ? 'true' : null"
                 />
             @else
                 <x-dynamic-component
                     :$name
                     :$type
                     :aria-label="$name"
-                    :aria-describedby="$help_text ? $name.'-help' : null"
+                    :aria-describedby="$described_by ?: null"
+                    :aria-invalid="$has_error ? 'true' : null"
                     :component="'input.'.$blade_type"
                     :id="$name"
                     :required="Helper::checkIfRequired($item, $name)"

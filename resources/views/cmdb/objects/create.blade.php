@@ -12,33 +12,42 @@
             <form action="{{ route('cmdb.objects.store') }}" method="POST">
                 @csrf
                 <div class="box-body">
-                    
+                    @if($errors->any())
+                        <div class="alert alert-danger" role="alert" aria-live="assertive">
+                            <p>Please correct the following errors:</p>
+                            <ul>
+                                @foreach($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
                     <div class="row">
                         <div class="col-md-6 form-group">
-                            <label>Item Name (Identifier) <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" name="name" placeholder="e.g. HQ Main Fiber Line" required>
+                            <label for="object-name">Item Name (Identifier) <span class="text-danger">*</span></label>
+                            <input id="object-name" type="text" class="form-control" name="name" placeholder="e.g. HQ Main Fiber Line" value="{{ old('name') }}" required>
                         </div>
                         
                         <div class="col-md-6 form-group">
-                            <label>Configuration Type <span class="text-danger">*</span></label>
+                            <label for="type_id">Configuration Type <span class="text-danger">*</span></label>
                             <select class="form-control select2" name="type_id" id="type_id" required>
                                 <option value="">-- Select Type --</option>
                                 @foreach($types as $type)
-                                    <option value="{{ $type->id }}">{{ $type->name }}</option>
+                                    <option value="{{ $type->id }}" {{ old('type_id') == $type->id ? 'selected' : '' }}>{{ $type->name }}</option>
                                 @endforeach
                             </select>
                         </div>
                     </div>
 
                     <hr>
-                    <div id="dynamic-fields-wrapper" style="background: #fdfdfd; padding: 15px; border: 1px dashed #ccc; border-radius: 5px;">
+                    <div id="dynamic-fields-wrapper" role="region" aria-label="Configuration fields" aria-live="polite" style="background: #fdfdfd; padding: 15px; border: 1px dashed #ccc; border-radius: 5px;">
                         <p class="text-muted text-center" id="dynamic-placeholder"><i class="fas fa-magic"></i> Select a Configuration Type to load fields...</p>
                     </div>
                     <hr>
 
                     <div class="form-group">
-                        <label>General Notes</label>
-                        <textarea class="form-control" name="notes" rows="3" placeholder="Any additional documentation..."></textarea>
+                        <label for="object-notes">General Notes</label>
+                        <textarea id="object-notes" class="form-control" name="notes" rows="3" placeholder="Any additional documentation...">{{ old('notes') }}</textarea>
                     </div>
                 </div>
                 
@@ -56,46 +65,53 @@
 <script nonce="{{ csrf_token() }}">
     $(document).ready(function() {
         var cmdbTypes = @json($types);
+        var previousValues = @json(old('dynamic_fields', []));
 
         $('#type_id').on('change', function() {
             var selectedId = $(this).val();
             var $wrapper = $('#dynamic-fields-wrapper');
+            var $placeholder = $('<p class="text-muted text-center">').text('Select a Configuration Type to load fields...');
             
             $wrapper.empty();
 
             if(!selectedId) {
-                $wrapper.html('<p class="text-muted text-center"><i class="fas fa-magic"></i> Select a Configuration Type to load fields...</p>');
+                $wrapper.append($placeholder);
                 return;
             }
 
             var selectedType = cmdbTypes.find(t => t.id == selectedId);
             
             if(selectedType && selectedType.schema_definition && selectedType.schema_definition.length > 0) {
-                var html = '<div class="row">';
-                
-                selectedType.schema_definition.forEach(function(field) {
-                    html += '<div class="col-md-6 form-group">';
-                    html += '<label class="text-primary">' + field.name + '</label>';
-                    
+                var $row = $('<div class="row">');
+
+                selectedType.schema_definition.forEach(function(field, index) {
+                    var id = 'dynamic-field-' + index;
                     var inputName = 'dynamic_fields[' + field.name + ']';
-                    
-                    if(field.type === 'textarea') {
-                        html += '<textarea class="form-control" name="' + inputName + '" rows="2"></textarea>';
-                    } else if(field.type === 'date') {
-                        html += '<input type="date" class="form-control" name="' + inputName + '">';
+                    var $group = $('<div class="col-md-6 form-group">');
+                    var $label = $('<label class="text-primary">').attr('for', id).text(field.name);
+                    var $input;
+
+                    if (field.type === 'textarea') {
+                        $input = $('<textarea>', { class: 'form-control', name: inputName, rows: 2, id: id });
                     } else {
-                        // text, number, url
-                        html += '<input type="' + field.type + '" class="form-control" name="' + inputName + '">';
+                        var inputType = ['text', 'number', 'date', 'url'].includes(field.type) ? field.type : 'text';
+                        $input = $('<input>', { type: inputType, class: 'form-control', name: inputName, id: id });
                     }
-                    html += '</div>';
+
+                    $input.val(previousValues[field.name] || '');
+                    $group.append($label, $input);
+                    $row.append($group);
                 });
-                
-                html += '</div>';
-                $wrapper.append(html);
+
+                $wrapper.append($row);
             } else {
-                $wrapper.html('<p class="text-warning text-center"><i class="fas fa-exclamation-triangle"></i> This type has no dynamic fields defined.</p>');
+                $wrapper.append($('<p class="text-warning text-center">').text('This type has no dynamic fields defined.'));
             }
         });
+
+        if ($('#type_id').val()) {
+            $('#type_id').trigger('change');
+        }
     });
 </script>
 @endsection

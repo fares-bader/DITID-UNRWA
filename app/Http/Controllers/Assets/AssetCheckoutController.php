@@ -331,12 +331,31 @@ class AssetCheckoutController extends Controller
     {
         $log = \App\Models\Actionlog::with(['item', 'target', 'location'])->findOrFail($logId);
 
-        $allLogs = \App\Models\Actionlog::with(['item'])
-            ->where('target_id', $log->target_id)
-            ->where('target_type', $log->target_type)
-            ->where('action_type', 'checkout')
-            ->where('created_at', $log->created_at)
+        $batchId = DB::table('unrwa_asset_request_assets')
+            ->where('checkout_action_log_id', $log->id)
+            ->value('batch_id');
+
+        $batchLogIds = $batchId
+            ? DB::table('unrwa_asset_request_assets')->where('batch_id', $batchId)->pluck('checkout_action_log_id')->filter()
+            : collect();
+
+        $allLogsRaw = \App\Models\Actionlog::with(['item'])
+            ->when($batchLogIds->isNotEmpty(), function ($query) use ($batchLogIds, $log) {
+                $query->whereIn('id', $batchLogIds)->orderBy('id');
+            }, function ($query) use ($log) {
+                $query->where('target_id', $log->target_id)
+                    ->where('target_type', $log->target_type)
+                    ->where('action_type', 'checkout')
+                    ->where('created_at', $log->created_at);
+            })
             ->get();
+
+        $allLogs = $allLogsRaw->map(function ($singleLog) {
+            if ($singleLog->item_type === \App\Models\Asset::class && $singleLog->item) {
+                $singleLog->item->load(['model', 'company', 'defaultLoc']);
+            }
+            return $singleLog;
+        });
 
         $issuer = \App\Models\User::with('department')->find($log->created_by);
 

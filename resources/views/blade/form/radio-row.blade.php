@@ -36,6 +36,10 @@
     // supplied (transient forms like bulk checkin have no persistent model).
     $really_required = $required ?? ($item ? Helper::checkIfRequired($item, $name) : false);
     $errors_class = $errors->has($name) ? ' has-error' : '';
+    $described_by = collect([
+        $errors->has($name) ? $name.'-error' : null,
+        $help_text ? $name.'-help' : null,
+    ])->filter()->implode(' ');
 @endphp
 
 <div {{ $attributes->merge(['class' => 'form-group'.$errors_class]) }}>
@@ -54,7 +58,8 @@
                     :required="$really_required && $loop->first"
                     :disabled="$disabled"
                     :aria-label="$name"
-                    :aria-describedby="$help_text ? $name.'-help' : null"
+                    :aria-describedby="$described_by ?: null"
+                    :aria-invalid="$errors->has($name) ? 'true' : null"
                 />
                 {{ $option_label }}
             </label>

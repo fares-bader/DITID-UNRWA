@@ -19,6 +19,7 @@
                 </div>
             </div>
             <div class="box-body">
+                <div class="table-responsive" role="region" aria-label="Configuration items" tabindex="0">
                 <table class="table table-striped snipe-table" id="cmdbObjectsTable">
                     <thead>
                         <tr>
@@ -34,7 +35,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach($objects as $obj)
+                        @forelse($objects as $obj)
                             <tr>
                                 <td>{{ $obj->id }}</td>
                                 <td style="font-weight: bold; font-size: 15px;">{{ $obj->name }}</td>
@@ -78,9 +79,14 @@
                                     </button>
                                 </td>
                             </tr>
-                        @endforeach
+                        @empty
+                            <tr>
+                                <td colspan="9" class="text-center text-muted">No configuration items have been created yet.</td>
+                            </tr>
+                        @endforelse
                     </tbody>
                 </table>
+                </div>
             </div>
         </div>
     </div>

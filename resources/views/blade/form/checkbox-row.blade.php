@@ -86,6 +86,10 @@
     }
 
     $errors_class = $errors->has($name) ? ' has-error' : '';
+    $described_by = collect([
+        $errors->has($name) ? $name.'-error' : null,
+        $help_text ? $name.'-help' : null,
+    ])->filter()->implode(' ');
 @endphp
 
 <div class="form-group{{ $errors_class }}">
@@ -113,7 +117,8 @@
                     :required="$really_required"
                     :disabled="$disabled"
                     :aria-label="$name"
-                    :aria-describedby="$help_text ? $name.'-help' : null"
+                    :aria-describedby="$described_by ?: null"
+                    :aria-invalid="$errors->has($name) ? 'true' : null"
                     {{ $attributes }}
                 />
                 {{ $label }}
@@ -136,7 +141,8 @@
                         :checked="$is_checked($option_value)"
                         :disabled="$disabled"
                         :aria-label="$name"
-                        :aria-describedby="$help_text ? $name.'-help' : null"
+                        :aria-describedby="$described_by ?: null"
+                        :aria-invalid="$errors->has($name) ? 'true' : null"
                     />
                     {{ $option_label }}
                 </label>

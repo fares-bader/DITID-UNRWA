@@ -72,6 +72,14 @@
             </a>
         </div>
 
+        @can('document_center.view')
+            <div class="col-md-3 col-sm-6">
+                <a href="{{ route('document.center') }}" class="btn btn-theme btn-block" style="margin-bottom: 10px; white-space: normal; text-align: left; padding-left: 15px;">
+                    <x-icon type="history" class="fa-fw"/> {{ trans('general.load_note_delivery_report') }}
+                </a>
+            </div>
+        @endcan
+
     </div>
 
 

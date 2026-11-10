@@ -15,6 +15,23 @@
             color: #fff !important;
             text-decoration: none !important;
         }
+
+        .asset-actions-column {
+            white-space: nowrap;
+            width: 1%;
+        }
+
+        .asset-actions-column .btn {
+            min-width: 24px;
+            padding: 2px 5px;
+            line-height: 1.2;
+        }
+
+        td.asset-load-note-column,
+        td.asset-load-note-column a {
+            font-size: 11px;
+            white-space: nowrap;
+        }
     </style>
 @endpush
 
@@ -2313,6 +2330,31 @@
         };
     }
 
+    // Statuses stay distinguishable without taking a full text column width.
+    // The tooltip and screen-reader label retain the configured status name.
+    window.assetStatusIconFormatter = function (value) {
+        if (!value || !value.name) {
+            return '';
+        }
+
+        var statusMeta = value.status_meta || value.status_type;
+        var statusIcons = {
+            deployed: { icon: 'fa-share-from-square', color: 'text-primary', label: @json(trans('general.deployed')) },
+            deployable: { icon: 'fa-circle-check', color: 'text-success', label: @json(trans('admin/hardware/general.deployable')) },
+            pending: { icon: 'fa-clock', color: 'text-warning', label: @json(trans('general.pending')) },
+            archived: { icon: 'fa-box-archive', color: 'text-muted', label: @json(trans('general.archived')) },
+            undeployable: { icon: 'fa-ban', color: 'text-danger', label: @json(trans('general.undeployable')) }
+        };
+        var status = statusIcons[statusMeta] || { icon: 'fa-tag', color: 'text-muted', label: '' };
+        // Status names are HTML-escaped by AssetsTransformer before they reach the table.
+        var statusLabel = status.label ? $('<div/>').text(status.label).html() : '';
+        var safeName = statusLabel ? statusLabel + ': ' + value.name : value.name;
+
+        return '<span class="asset-status-icon ' + status.color + '" data-tooltip="true" title="' + safeName + '" aria-label="' + safeName + '">'
+            + '<i class="fa-solid ' + status.icon + '" aria-hidden="true"></i>'
+            + '<span class="sr-only">' + safeName + '</span></span>';
+    };
+
 
     function colorTagFormatter(value, row) {
         if (value) {
@@ -2357,6 +2399,22 @@
 
             if (dest == 'maintenanceTypes') {
                 dest = 'maintenance-types';
+            }
+
+            // Asset checkout/checkin actions live beside edit/delete so the
+            // table no longer needs a separate, wide in/out column.
+            if (dest === 'hardware') {
+                if (row.available_actions && row.available_actions.checkout === true && !row.assigned_to) {
+                    if (row.user_can_checkout === true) {
+                        actions += '<a href="{{ config('app.url') }}/hardware/' + row.id + '/checkout" class="actions btn btn-xs btn-primary hidden-print" data-tooltip="true" title="{{ trans('general.checkout_tooltip') }}" aria-label="{{ trans('general.checkout') }}"><i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i><span class="sr-only">{{ trans('general.checkout') }}</span></a>&nbsp;';
+                    } else {
+                        actions += '<span data-tooltip="true" title="{{ trans('admin/hardware/general.undeployable_tooltip') }}"><button type="button" class="btn btn-xs btn-primary disabled" aria-label="{{ trans('general.checkout') }}" disabled><i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i><span class="sr-only">{{ trans('general.checkout') }}</span></button></span>&nbsp;';
+                    }
+                }
+
+                if (row.available_actions && row.available_actions.checkin === true && row.assigned_to) {
+                    actions += '<a href="{{ config('app.url') }}/hardware/' + row.id + '/checkin" class="actions btn btn-xs btn-success hidden-print" data-tooltip="true" title="{{ trans('general.checkin_tooltip') }}" aria-label="{{ trans('general.checkin') }}"><i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i><span class="sr-only">{{ trans('general.checkin') }}</span></a>&nbsp;';
+                }
             }
 
 

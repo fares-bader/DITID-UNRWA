@@ -12,6 +12,16 @@
             <form action="{{ isset($type) ? route('cmdb.types.update', $type->id) : route('cmdb.types.store') }}" method="POST">
                 @csrf
                 <div class="box-body">
+                    @if($errors->any())
+                        <div class="alert alert-danger" role="alert" aria-live="assertive">
+                            <p>Please correct the following errors:</p>
+                            <ul>
+                                @foreach($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
                     
                     <!-- Basic Info -->
                     <div class="row">
@@ -51,12 +61,12 @@
                             @endphp
                             <div class="row field-row" style="background: #f9f9f9; padding: 10px; border: 1px solid #ddd; margin-bottom: 10px;">
                                 <div class="col-md-6 form-group" style="margin-bottom: 0;">
-                                    <label>Field Name</label>
-                                    <input type="text" class="form-control" name="field_name[]" placeholder="e.g. IP Address" value="{{ $fName }}" required>
+                            <label for="field-name-{{ $index }}">Field Name</label>
+                            <input id="field-name-{{ $index }}" type="text" class="form-control" name="field_name[]" placeholder="e.g. IP Address" value="{{ $fName }}" required>
                                 </div>
                                 <div class="col-md-5 form-group" style="margin-bottom: 0;">
-                                    <label>Field Type</label>
-                                    <select class="form-control" name="field_type[]" required>
+                            <label for="field-type-{{ $index }}">Field Type</label>
+                            <select id="field-type-{{ $index }}" class="form-control" name="field_type[]" required>
                                         <option value="text" {{ $fType == 'text' ? 'selected' : '' }}>Text</option>
                                         <option value="textarea" {{ $fType == 'textarea' ? 'selected' : '' }}>Textarea</option>
                                         <option value="number" {{ $fType == 'number' ? 'selected' : '' }}>Number</option>
@@ -65,7 +75,7 @@
                                     </select>
                                 </div>
                                 <div class="col-md-1 text-center" style="margin-top: 25px;">
-                                    <button type="button" class="btn btn-danger btn-sm remove-field-btn" style="{{ $loop->first && count($fields) == 1 ? 'display:none;' : '' }}" title="Remove Field"><i class="fas fa-times"></i></button>
+                                    <button type="button" class="btn btn-danger btn-sm remove-field-btn" style="{{ $loop->first && count($fields) == 1 ? 'display:none;' : '' }}" title="Remove Field" aria-label="Remove field {{ $index + 1 }}"><i class="fas fa-times" aria-hidden="true"></i></button>
                                 </div>
                             </div>
                         @endforeach
@@ -102,6 +112,11 @@
         $('#add-field-btn').click(function() {
             var $firstRow = $('.field-row').first();
             var $clone = $firstRow.clone();
+            var newIndex = $('.field-row').length;
+
+            $clone.find('input[name="field_name[]"]').attr('id', 'field-name-' + newIndex).prev('label').attr('for', 'field-name-' + newIndex);
+            $clone.find('select[name="field_type[]"]').attr('id', 'field-type-' + newIndex).prev('label').attr('for', 'field-type-' + newIndex);
+            $clone.find('.remove-field-btn').attr('aria-label', 'Remove field ' + (newIndex + 1));
             
             $clone.find('input[type="text"]').val('');
             $clone.find('select').val('text');

@@ -1321,6 +1321,70 @@ $(function () {
         $(this).find(':input[required]').filter(function () { return !this.value; }).attr('disabled', 'disabled');
     });
 
+    // Shared loading feedback for standard Blade forms. Keep the clicked
+    // submit button enabled until navigation starts so name/value controls
+    // (such as redirect options) remain part of the request.
+    $(document).on('submit', 'form[data-loading-state="true"]', function (event) {
+        var form = this;
+        if (event.isDefaultPrevented()) {
+            return;
+        }
+
+        if (form.dataset.submitting === 'true') {
+            event.preventDefault();
+            return;
+        }
+
+        form.dataset.submitting = 'true';
+        form.setAttribute('aria-busy', 'true');
+
+        var submitter = event.originalEvent && event.originalEvent.submitter;
+        if (!submitter) {
+            submitter = form.querySelector('button[type="submit"], input[type="submit"]');
+        }
+
+        if (submitter && submitter.dataset.loading !== 'true') {
+            submitter.dataset.loading = 'true';
+            var spinner = document.createElement('i');
+            spinner.className = 'fas fa-spinner fa-spin form-submit-spinner';
+            spinner.setAttribute('aria-hidden', 'true');
+
+            var liveStatus = document.createElement('span');
+            liveStatus.className = 'sr-only';
+            liveStatus.setAttribute('role', 'status');
+            liveStatus.setAttribute('aria-live', 'polite');
+            liveStatus.textContent = form.dataset.loadingLabel || 'Processing';
+
+            if (submitter.tagName === 'INPUT') {
+                submitter.insertAdjacentElement('afterend', spinner);
+                spinner.insertAdjacentElement('afterend', liveStatus);
+            } else {
+                submitter.appendChild(spinner);
+                submitter.appendChild(liveStatus);
+            }
+        }
+
+        window.setTimeout(function () {
+            if (event.isDefaultPrevented()) {
+                form.removeAttribute('aria-busy');
+                delete form.dataset.submitting;
+                if (submitter) {
+                    var spinner = submitter.tagName === 'INPUT'
+                        ? submitter.nextElementSibling
+                        : submitter.querySelector('.form-submit-spinner');
+                    if (spinner && spinner.classList.contains('form-submit-spinner')) {
+                        var status = spinner.nextElementSibling;
+                        spinner.remove();
+                        if (status && status.classList.contains('sr-only')) {
+                            status.remove();
+                        }
+                    }
+                    delete submitter.dataset.loading;
+                }
+            }
+        }, 0);
+    });
+
     // Master checkbox → toggle every non-disabled checkbox in the closest
     // form or table (or a caller-specified selector via data-check-scope).
     // Used by bulk-delete confirmation pages to select or deselect the

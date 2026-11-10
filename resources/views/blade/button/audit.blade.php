@@ -7,7 +7,7 @@
 @can('audit', $item)
     @if ($item->deleted_at=='')
         <span class="tooltip-wrapper"{!! (!$item->model ? ' data-tooltip="true" title="'.trans('admin/hardware/general.model_invalid_fix').'"' : '') !!}>
-            <a href="{{ $route  }}" class="btn btn-sm btn-primary hidden-print{{ (!$item->model ? ' disabled' : '') }}" data-tooltip="true" title="{{ trans('general.audit') }}">
+            <a href="{{ $route  }}" class="btn btn-sm btn-primary hidden-print{{ (!$item->model ? ' disabled' : '') }}" data-tooltip="true" title="{{ trans('general.audit') }}" aria-label="{{ trans('general.audit') }}">
                  <x-icon type="audit" class="fa-fw"/>
                  @if ($wide=='true')
                     {{ trans('general.audit') }}

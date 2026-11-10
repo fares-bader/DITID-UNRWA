@@ -108,7 +108,7 @@ class AssetPresenter extends Presenter
                 'sortable' => true,
                 'title' => trans('admin/hardware/table.status'),
                 'visible' => true,
-                'formatter' => 'statuslabelsLinkObjFormatter',
+                'formatter' => 'assetStatusIconFormatter',
             ],
             [
                 'field' => 'assigned_to',
@@ -120,13 +120,6 @@ class AssetPresenter extends Presenter
                 'formatter' => 'polymorphicItemFormatter',
             ],
             [
-                'field' => 'load_note',
-                'searchable' => false,
-                'sortable' => false,
-                'title' => 'Load Note No.',
-                'visible' => true,
-                'formatter' => 'customHtmlFormatter',
-            ], [
                 'field' => 'employee_number',
                 'scope' => 'col',
                 'searchable' => false,
@@ -417,17 +410,16 @@ class AssetPresenter extends Presenter
             ];
         }
 
+        // Keep Load Note immediately beside Actions, so those are the two
+        // columns pinned on the right side of the assets table.
         $layout[] = [
-            'field' => 'checkincheckout',
-            'scope' => 'col',
+            'field' => 'load_note',
             'searchable' => false,
             'sortable' => false,
-            'switchable' => false,
-            'title' => trans('general.checkin').'/'.trans('general.checkout'),
+            'title' => trans('general.load_note_abbr'),
             'visible' => true,
-            'formatter' => 'hardwareInOutFormatter',
-            'printIgnore' => true,
-            'class' => 'hidden-print',
+            'formatter' => 'customHtmlFormatter',
+            'class' => 'asset-load-note-column',
         ];
 
         $layout[] = [
@@ -439,7 +431,7 @@ class AssetPresenter extends Presenter
             'title' => trans('table.actions'),
             'formatter' => 'hardwareActionsFormatter',
             'printIgnore' => true,
-            'class' => 'hidden-print',
+            'class' => 'hidden-print asset-actions-column',
         ];
 
         return json_encode($layout);

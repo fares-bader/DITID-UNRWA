@@ -8,7 +8,7 @@
 
 @can('view', $item)
     @if ($count > 0)
-        <a href="{{ $route }}" class="btn btn-sm btn-primary hidden-print" data-tooltip="true" title="{{ $tooltip }}">
+        <a href="{{ $route }}" class="btn btn-sm btn-primary hidden-print" data-tooltip="true" title="{{ $tooltip }}" aria-label="{{ $tooltip }}">
              <x-icon type="print"/>
              @if ($wide=='true')
                 {{ trans('general.print') }}

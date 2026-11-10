@@ -28,7 +28,7 @@
     ])
 >
 
-    <label for="{{ $name }}" class="col-md-3 control-label">{{ $label }}</label>
+    <label for="{{ $id }}" class="col-md-3 control-label">{{ $label }}</label>
     <div class="col-md-7">
         <select
             class="js-data-ajax"
@@ -38,6 +38,10 @@
             style="width: 100%"
             id="{{ $id }}"
             aria-label="{{ $name }}"
+            @if ($errors->has($name) || $helpText)
+                aria-describedby="{{ collect([$errors->has($name) ? $name.'-error' : null, $helpText ? $name.'-help' : null])->filter()->implode(' ') }}"
+                @if ($errors->has($name)) aria-invalid="true" @endif
+            @endif
             @required($required)
             @if ($multiple)
                 multiple
@@ -69,7 +73,7 @@
 
     @if ($helpText)
         <div class="col-md-7 col-sm-11 col-md-offset-3">
-            <p class="help-block">{{ $helpText }}</p>
+            <p id="{{ $name }}-help" class="help-block">{{ $helpText }}</p>
         </div>
     @endif
 

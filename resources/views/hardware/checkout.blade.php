@@ -153,9 +153,10 @@
                                 <div class="col-md-8">
                                     <div class="input-group">
                                         <span class="input-group-addon"><i class="fas fa-envelope"></i></span>
-                                        <input class="form-control" type="email" name="cc_email" id="cc_email" value="{{ old('cc_email') }}" placeholder="security@unrwa.org">
+                                        <input class="form-control" type="email" name="cc_email" id="cc_email" value="{{ old('cc_email') }}" placeholder="security@unrwa.org" @if($errors->has('cc_email')) aria-invalid="true" aria-describedby="cc_email-error cc_email-help" @else aria-describedby="cc_email-help" @endif>
                                     </div>
-                                    <p class="help-block" style="font-size: 11.5px; margin-top: 5px;">Optional (e.g. Manager/Security). Works only if checkbox above is checked.</p>
+                                    <x-form.error name="cc_email" />
+                                    <p id="cc_email-help" class="help-block" style="font-size: 11.5px; margin-top: 5px;">Optional (e.g. Manager/Security). Works only if checkbox above is checked.</p>
                                 </div>
                             </div>
                         </div>
